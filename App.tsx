@@ -6,7 +6,8 @@ import StudentManagement from './components/StudentManagement';
 import EventManagement from './components/EventManagement';
 import HouseDashboard from './components/HouseDashboard';
 import Profile from './components/Profile';
-import Login from './components/login';
+// import Login from './components/login'; // <-- REMOVED THIS
+import AuthScreen from './components/AuthScreen'; // <-- ADDED THIS
 import { DashboardIcon, StudentsIcon, EventsIcon, HouseIcon, UserIcon, SettingsIcon, ProfileIcon, LogoutIcon } from './components/Icons';
 import Card from './components/common/Card';
 import { useAuth } from './src/context/AuthContext';
@@ -219,7 +220,7 @@ function App() {
   }
 
   if (!user) {
-    return <Login />;
+    return <AuthScreen />; // <-- CHANGED THIS LINE
   }
 
   // Logged-in App View
