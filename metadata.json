@@ -1,0 +1,5 @@
+{
+  "name": "Copy of SDA Sports — Student House Sports Management App",
+  "description": "An application to organize students into four houses (Yellow, Blue, Green, Red) and manage real-time updates for various school sports events. It allows teachers and coordinators to monitor event progress, scores, and participant details online.",
+  "requestFramePermissions": []
+}
