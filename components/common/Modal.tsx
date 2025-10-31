@@ -26,7 +26,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
           <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white">&times;</button>
         </div>
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto max-h-[80vh]">
           {children}
         </div>
       </div>

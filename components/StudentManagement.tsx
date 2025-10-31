@@ -708,7 +708,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
 
                     <div>
                     <h4 className="text-md font-semibold mb-2">Event Participation Details</h4>
-                    <div className="overflow-y-auto max-h-60 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
                         <table className="w-full text-left">
                         <thead className="sticky top-0 bg-gray-100 dark:bg-gray-700 z-10">
                             <tr>
