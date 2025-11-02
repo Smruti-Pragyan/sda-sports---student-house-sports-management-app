@@ -6,17 +6,32 @@ import StudentManagement from './components/StudentManagement';
 import EventManagement from './components/EventManagement';
 import HouseDashboard from './components/HouseDashboard';
 import Profile from './components/Profile';
-// import Login from './components/login'; // <-- REMOVED THIS
-import AuthScreen from './components/AuthScreen'; // <-- ADDED THIS
-import { DashboardIcon, StudentsIcon, EventsIcon, HouseIcon, UserIcon, SettingsIcon, ProfileIcon, LogoutIcon } from './components/Icons';
+import AuthScreen from './components/AuthScreen';
+import { DashboardIcon, StudentsIcon, EventsIcon, HouseIcon, UserIcon, SettingsIcon, ProfileIcon, LogoutIcon, MenuIcon, CloseIcon } from './components/Icons'; // <-- ADDED MenuIcon, CloseIcon
 import Card from './components/common/Card';
 import { useAuth } from './src/context/AuthContext';
 import api from './src/api';
 
-// --- HEADER COMPONENT ---
-const Header: React.FC<{ adminProfile: AdminProfile }> = ({ adminProfile }) => (
+// --- HEADER COMPONENT (UPDATED) ---
+interface HeaderProps {
+    adminProfile: AdminProfile;
+    onMenuToggle: () => void;
+    isMobileMenuOpen: boolean; // <-- ADDED
+}
+
+const Header: React.FC<HeaderProps> = ({ adminProfile, onMenuToggle, isMobileMenuOpen }) => (
     <header className="bg-white dark:bg-gray-800 p-4 shadow-md flex justify-between items-center z-10 relative border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">SDA Sports</h1>
+        <div className="flex items-center space-x-3">
+            {/* --- THIS IS THE NEW MENU BUTTON --- */}
+            <button
+                onClick={onMenuToggle}
+                className="text-gray-800 dark:text-white md:hidden"
+                aria-label="Toggle menu"
+            >
+                {isMobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
+            </button>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">SDA Sports</h1>
+        </div>
         <div className="flex items-center space-x-3">
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 hidden sm:block">{adminProfile.name}</span>
              {adminProfile.profilePictureUrl ? (
@@ -30,42 +45,66 @@ const Header: React.FC<{ adminProfile: AdminProfile }> = ({ adminProfile }) => (
     </header>
 );
 
-// --- SIDEBAR COMPONENT (Corrected) ---
-const Sidebar: React.FC<{ view: View; setView: (view: View) => void; onLogout: () => void }> = ({ view, setView, onLogout }) => {
-    // This function was missing in your broken version
+// --- SIDEBAR COMPONENT (UPDATED) ---
+interface SidebarProps {
+    view: View;
+    setView: (view: View) => void;
+    onLogout: () => void;
+    isMobileMenuOpen: boolean; // <-- ADDED
+    setIsMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>; // <-- ADDED
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenuOpen, setIsMobileMenuOpen }) => {
+    
+    // Helper to set view AND close menu on mobile
+    const handleSetView = (newView: View) => {
+        setView(newView);
+        setIsMobileMenuOpen(false);
+    };
+
+    // Helper for logout
+    const handleLogout = () => {
+        onLogout();
+        setIsMobileMenuOpen(false);
+    }
+
     const navItemClasses = (currentView: View) => `flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${view === currentView ? 'bg-blue-600 text-white' : 'hover:bg-gray-700 text-gray-300'}`;
 
+    // --- RESPONSIVE CLASSES ADDED HERE ---
     return (
-        <aside className="w-64 bg-gray-800 p-4 space-y-2 flex flex-col text-white">
+        <aside 
+            className={`fixed md:relative inset-y-0 left-0 z-30 w-64 bg-gray-800 p-4 space-y-2 flex flex-col text-white
+                        transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 
+                        transition-transform duration-300 ease-in-out`}
+        >
             <nav className="flex-grow space-y-2">
-                <div className={navItemClasses('dashboard')} onClick={() => setView('dashboard')}>
+                <div className={navItemClasses('dashboard')} onClick={() => handleSetView('dashboard')}>
                     <DashboardIcon /> <span>Dashboard</span>
                 </div>
-                <div className={navItemClasses('students')} onClick={() => setView('students')}>
+                <div className={navItemClasses('students')} onClick={() => handleSetView('students')}>
                     <StudentsIcon /> <span>Students</span>
                 </div>
-                <div className={navItemClasses('events')} onClick={() => setView('events')}>
+                <div className={navItemClasses('events')} onClick={() => handleSetView('events')}>
                     <EventsIcon /> <span>Events</span>
                 </div>
                 
                 <div className="pt-4">
                     <h3 className="text-gray-400 text-sm font-semibold uppercase px-3 mb-2">Houses</h3>
           {HOUSES.map(house => (
-            <div key={house.name} className={navItemClasses(`house-${house.name.toLowerCase()}` as View)} onClick={() => setView(`house-${house.name.toLowerCase()}` as View)}>
+            <div key={house.name} className={navItemClasses(`house-${house.name.toLowerCase()}` as View)} onClick={() => handleSetView(`house-${house.name.toLowerCase()}` as View)}>
               <HouseIcon/> <span>{house.name} House</span>
             </div>
           ))}
                 </div>
             </nav>
             <div className="border-t border-gray-700 pt-2 space-y-1">
-                 <div className={navItemClasses('profile')} onClick={() => setView('profile')}>
+                 <div className={navItemClasses('profile')} onClick={() => handleSetView('profile')}>
                     <ProfileIcon /> <span>Profile</span>
                 </div>
-                 <div className={navItemClasses('settings')} onClick={() => setView('settings')}>
+                 <div className={navItemClasses('settings')} onClick={() => handleSetView('settings')}>
                     <SettingsIcon /> <span>Settings</span>
                 </div>
-                 {/* This is the corrected Logout button layout */}
-                 <div className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-red-600 text-red-300" onClick={onLogout}>
+                 <div className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-red-600 text-red-300" onClick={handleLogout}>
                     <LogoutIcon/> <span>Logout</span>
                 </div>
             </div>
@@ -73,11 +112,10 @@ const Sidebar: React.FC<{ view: View; setView: (view: View) => void; onLogout: (
     );
 };
 
-// --- SETTINGS COMPONENT (Was Missing) ---
+// --- SETTINGS COMPONENT (Unchanged) ---
 const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onResetData: () => void}> = ({theme, setTheme, onResetData}) => {
     
     const handleReset = () => {
-        // Updated confirmation message
         if (window.confirm('Are you sure you want to log out and clear local theme settings? All your data is saved on the server.')) {
             onResetData();
         }
@@ -124,11 +162,10 @@ const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onRese
     )
 }
 
-// --- MAIN APP COMPONENT ---
+// --- MAIN APP COMPONENT (UPDATED) ---
 function App() {
   const { user, isLoading, logout, updateProfile } = useAuth();
   
-  // App state is now managed with useState and fetched from API
   const [students, setStudents] = useState<Student[]>([]);
   const [events, setEvents] = useState<SportEvent[]>([]);
   const [adminProfile, setAdminProfile] = useState<AdminProfile>({ name: '', email: '', profilePictureUrl: '' });
@@ -138,19 +175,19 @@ function App() {
     const savedTheme = localStorage.getItem('sda-sports-theme');
     return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'dark';
   });
+
+  // --- NEW STATE FOR MOBILE MENU ---
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   useEffect(() => {
-    // Apply theme
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
     localStorage.setItem('sda-sports-theme', theme);
   }, [theme]);
 
-  // Data fetching effect
   useEffect(() => {
     if (user) {
-      // User is logged in, fetch all data
       const fetchData = async () => {
         try {
           const [studentsRes, eventsRes, profileRes] = await Promise.all([
@@ -163,7 +200,6 @@ function App() {
           setAdminProfile(profileRes.data);
         } catch (error) {
           console.error("Failed to fetch data", error);
-          // If token is bad, log out
           if ((error as any).response?.status === 401) {
             logout();
           }
@@ -171,7 +207,6 @@ function App() {
       };
       fetchData();
     } else {
-      // User is logged out, clear data
       setStudents([]);
       setEvents([]);
       setAdminProfile({ name: '', email: '', profilePictureUrl: '' });
@@ -194,7 +229,6 @@ function App() {
         return <HouseDashboard houseName={houseName} students={students} events={events} />;
     }
 
-    // Pass state and *setters* to components
     switch (view) {
       case 'students':
         return <StudentManagement students={students} setStudents={setStudents} events={events} />;
@@ -203,33 +237,53 @@ function App() {
       case 'settings':
         return <Settings theme={theme} setTheme={setTheme} onResetData={handleResetData} />;
       case 'profile':
-        return <Profile adminProfile={adminProfile} setAdminProfile={setAdminProfile} />;
+        // --- THIS LINE IS NOW FIXED ---
+        return <Profile adminProfile={adminProfile} setAdminProfile={setAdminProfile} updateProfile={updateProfile} />;
       case 'dashboard':
       default:
         return <Dashboard students={students} events={events} theme={theme} />;
     }
   }, [view, students, events, adminProfile, theme, handleResetData, updateProfile]);
   
-  // Handle auth loading and logged-out state
   if (isLoading) {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
             Loading...
         </div>
-    ); // Or a spinner
+    );
   }
 
   if (!user) {
-    return <AuthScreen />; // <-- CHANGED THIS LINE
+    return <AuthScreen />;
   }
 
-  // Logged-in App View
+  // --- UPDATED LOGGED-IN VIEW ---
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
-      <Header adminProfile={adminProfile}/>
+      <Header 
+        adminProfile={adminProfile} 
+        onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        isMobileMenuOpen={isMobileMenuOpen}
+      />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar view={view} setView={setView} onLogout={logout} />
-        <main className="flex-1 overflow-y-auto">
+        {/* --- NEW OVERLAY FOR MOBILE --- */}
+        {isMobileMenuOpen && (
+            <div 
+                className="fixed inset-0 bg-black/50 z-20 md:hidden" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                aria-hidden="true"
+            ></div>
+        )}
+        <Sidebar 
+            view={view} 
+            setView={setView} 
+            onLogout={logout} 
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
+        {/* --- MAIN CONTENT NOW SHIFTS ON MOBILE WHEN MENU IS OPEN (optional) --- */}
+        {/* We use relative positioning and z-0 to ensure it stays behind the overlay */}
+        <main className="flex-1 overflow-y-auto relative z-0">
           {renderView}
         </main>
       </div>

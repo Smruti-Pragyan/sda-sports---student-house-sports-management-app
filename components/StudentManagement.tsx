@@ -57,7 +57,17 @@ const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student,
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Phone</label>
-        <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500" />
+        <input 
+          type="tel" 
+          name="phone" 
+          value={formData.phone} 
+          onChange={handleChange} 
+          required 
+          className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500" 
+          pattern="[0-9]{10}"
+          maxLength={10}
+          title="Phone number must be exactly 10 digits (e.g., 1234567890)"
+        />
       </div>
       <div className="grid grid-cols-2 gap-4">
          <div>
@@ -94,6 +104,11 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
         const newStudents = lines.map(line => {
             const [fullName, studentClass, rollNumber, phone] = line.split(',').map(item => item.trim());
             if (fullName && studentClass && rollNumber && phone) {
+                // Basic validation for phone: check if it's 10 digits
+                if (!/^[0-9]{10}$/.test(phone)) {
+                    console.warn(`Skipping student ${fullName}: Phone number '${phone}' is not 10 digits.`);
+                    return null;
+                }
                 const student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> = {
                     fullName,
                     class: studentClass,
@@ -109,7 +124,7 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
         }).filter((s): s is Omit<Student, 'id' | 'createdAt' | 'updatedAt'> => s !== null);
 
         if (newStudents.length === 0) {
-            alert('No valid student data found. Please check the format.');
+            alert('No valid student data found. Please check the format (FullName,Class,RollNumber,PhoneNumber) and ensure phone numbers are 10 digits.');
             return;
         }
 
@@ -146,6 +161,8 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
                 Paste student data in CSV format (one student per line):
                 <br />
                 <code className="bg-gray-200 dark:bg-gray-700 p-1 rounded">FullName,Class,RollNumber,PhoneNumber</code>
+                <br />
+                <span className="text-xs">Note: Phone number must be exactly 10 digits.</span>
             </p>
             <textarea
                 value={csvData}
