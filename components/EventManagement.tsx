@@ -1,18 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { type SportEvent, type Student, EventType, type Participant, AgeCategory } from '../types';
+import { type SportEvent, type Student, EventType, type Participant, AgeCategory, HouseName } from '../types'; 
 import Card from './common/Card';
 import Modal from './common/Modal';
 import { PlusIcon } from './Icons';
 import api from '../src/api';
+import { HOUSES } from '../constants'; 
 
 interface EventManagementProps {
   events: SportEvent[];
-  setEvents: React.Dispatch<React.SetStateAction<SportEvent[]>>; // <-- CHANGED PROP
+  setEvents: React.Dispatch<React.SetStateAction<SportEvent[]>>;
   students: Student[];
-  // dispatch is removed
 }
 
-// EventForm is unchanged
+// ... (EventForm component is unchanged) ...
 const EventForm: React.FC<{ event?: SportEvent; onSave: (event: Omit<SportEvent, 'id' | 'participants' | 'createdAt' | 'updatedAt'> | SportEvent) => void; onCancel: () => void }> = ({ event, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: event?.name || '',
@@ -69,21 +69,23 @@ const EventForm: React.FC<{ event?: SportEvent; onSave: (event: Omit<SportEvent,
   );
 };
 
-// ManageParticipantsModal is UPDATED to use API
+// --- ManageParticipantsModal UPDATED ---
 const ManageParticipantsModal: React.FC<{
     event: SportEvent,
     students: Student[],
     onClose: () => void,
-    setEvents: React.Dispatch<React.SetStateAction<SportEvent[]>> // <-- CHANGED PROP
+    setEvents: React.Dispatch<React.SetStateAction<SportEvent[]>>
 }> = ({ event, students, onClose, setEvents }) => {
     const [participants, setParticipants] = useState(event.participants.map(p => ({
-        // Handle populated studentId from server (which is an object)
         studentId: (p.studentId as any)._id || p.studentId,
         score: p.score
     })));
     const [maxParticipants, setMaxParticipants] = useState(event.maxParticipants);
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+    
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [classFilter, setClassFilter] = useState('all');
+    const [houseFilters, setHouseFilters] = useState<Set<HouseName>>(new Set());
 
     const [scoreInputs, setScoreInputs] = useState<Record<string, string>>(() =>
         event.participants.reduce((acc, p) => {
@@ -95,16 +97,32 @@ const ManageParticipantsModal: React.FC<{
     const [scoreErrors, setScoreErrors] = useState<Record<string, boolean>>({});
     const [saveError, setSaveError] = useState<string | null>(null);
     
+    const handleHouseFilterChange = (house: HouseName) => {
+        const newFilters = new Set(houseFilters);
+        if (newFilters.has(house)) {
+            newFilters.delete(house);
+        } else {
+            newFilters.add(house);
+        }
+        setHouseFilters(newFilters);
+    };
+
     const availableStudents = useMemo(() => {
         return students.filter(s => {
             const studentId = (s as any)._id || s.id;
             const isAlreadyParticipant = participants.some(p => p.studentId === studentId);
+            if (isAlreadyParticipant) return false;
+
             const matchesCategory = categoryFilter === 'all' || s.category === categoryFilter;
-            return !isAlreadyParticipant && matchesCategory;
+            const matchesClass = classFilter === 'all' || s.class === classFilter;
+            const matchesHouse = houseFilters.size === 0 || houseFilters.has(s.house);
+            
+            return matchesCategory && matchesClass && matchesHouse;
         });
-    }, [students, participants, categoryFilter]);
+    }, [students, participants, categoryFilter, classFilter, houseFilters]);
 
     const isFull = participants.length >= maxParticipants;
+    const vacancies = maxParticipants - participants.length;
 
     const handleAddParticipant = () => {
         if (selectedStudentId && !isFull) {
@@ -117,11 +135,9 @@ const ManageParticipantsModal: React.FC<{
     
     const handleRemoveParticipant = (studentId: string) => {
         setParticipants(prev => prev.filter(p => p.studentId !== studentId));
-
         const newScoreInputs = { ...scoreInputs };
         delete newScoreInputs[studentId];
         setScoreInputs(newScoreInputs);
-
         const newScoreErrors = { ...scoreErrors };
         delete newScoreErrors[studentId];
         setScoreErrors(newScoreErrors);
@@ -130,7 +146,6 @@ const ManageParticipantsModal: React.FC<{
     const handleScoreChange = (studentId: string, value: string) => {
         setSaveError(null);
         setScoreInputs(prev => ({ ...prev, [studentId]: value }));
-
         if (/^\d*$/.test(value)) {
             setScoreErrors(prev => ({ ...prev, [studentId]: false }));
         } else {
@@ -156,11 +171,9 @@ const ManageParticipantsModal: React.FC<{
             maxParticipants: maxParticipants,
         };
 
-        // --- NEW API CALL ---
         try {
             const eventId = (event as any)._id || event.id;
             const { data: savedEvent } = await api.put(`/events/${eventId}`, updatedEventData);
-            // Update the state in App.tsx
             setEvents(prev => prev.map(e => ((e as any)._id || e.id) === eventId ? savedEvent : e));
             onClose();
         } catch (error) {
@@ -168,6 +181,9 @@ const ManageParticipantsModal: React.FC<{
             alert("Failed to save changes.");
         }
     };
+    
+    // --- UPDATED: Class list for dropdown ---
+    const classOptions = ['all', ...Array.from({ length: 12 }, (_, i) => (i + 1).toString())];
 
     return (
         <div className="space-y-4 text-gray-800 dark:text-gray-200">
@@ -189,21 +205,61 @@ const ManageParticipantsModal: React.FC<{
             <hr className="dark:border-gray-600"/>
 
             <h4 className="font-semibold text-lg">Add Participants</h4>
+            
+            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md space-y-3">
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Filters</label>
+                <div className="grid grid-cols-2 gap-3">
+                    <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">All Categories</option>
+                        {Object.values(AgeCategory).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    {/* --- UPDATED: Class filter dropdown options --- */}
+                    <select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                        {classOptions.map(c => <option key={c} value={c}>{c === 'all' ? 'All Classes' : c}</option>)}
+                    </select>
+                </div>
+                {event.type === EventType.Team && (
+                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300 self-center">Houses:</span>
+                        {HOUSES.map(house => (
+                            <label key={house.name} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={houseFilters.has(house.name)}
+                                    onChange={() => handleHouseFilterChange(house.name)}
+                                    className={`form-checkbox h-5 w-5 rounded focus:ring-0`}
+                                    style={{ 
+                                      backgroundColor: houseFilters.has(house.name) ? HOUSES.find(h=>h.name === house.name)?.color.replace('bg-','').replace('-500','') : '#cbd5e1',
+                                      color: 'transparent'
+                                    }}
+                                />
+                                <span className="text-sm">{house.name}</span>
+                            </label>
+                        ))}
+                    </div>
+                )}
+            </div>
+            
             <div className="flex space-x-2">
-                <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="all">All Categories</option>
-                    {Object.values(AgeCategory).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
                 <select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} disabled={isFull} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                     <option value="">Select a student</option>
                     {availableStudents.map(s => {
                         const studentId = (s as any)._id || s.id;
-                        return <option key={studentId} value={studentId}>{s.fullName} ({s.class})</option>
+                        return <option key={studentId} value={studentId}>{s.fullName} ({s.class}) - {s.house}</option>
                     })}
                 </select>
                 <button onClick={handleAddParticipant} disabled={isFull || !selectedStudentId} className="px-4 py-2 bg-blue-600 text-white rounded-md self-end hover:bg-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed">Add</button>
             </div>
-            {isFull && <p className="text-center text-sm text-yellow-600 dark:text-yellow-400">All slots for this event are filled.</p>}
+            
+            {isFull ? (
+                <p className="text-center text-sm text-yellow-600 dark:text-yellow-400">
+                    Event is full. ({maxParticipants} / {maxParticipants} Filled)
+                </p>
+            ) : (
+                <p className="text-center text-sm text-green-600 dark:text-green-400">
+                    {vacancies} {vacancies === 1 ? 'vacancy' : 'vacancies'} remaining.
+                </p>
+            )}
             
             <h4 className="font-semibold text-lg pt-4">Current Participants & Scores</h4>
             <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -212,7 +268,7 @@ const ManageParticipantsModal: React.FC<{
                     const isInvalid = scoreErrors[p.studentId];
                     return (
                         <div key={p.studentId} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                            <span>{student?.fullName}</span>
+                            <span>{student?.fullName} ({student?.house})</span>
                             <div className="flex items-center space-x-2">
                                 <input
                                     type="text"
@@ -240,30 +296,27 @@ const ManageParticipantsModal: React.FC<{
     );
 }
 
-// isDateWithinRange is unchanged
+// ... (isDateWithinRange function is unchanged) ...
 const isDateWithinRange = (isoDateString: string, range: 'today' | 'week' | 'month'): boolean => {
     const date = new Date(isoDateString);
     const now = new Date();
-
     date.setHours(0, 0, 0, 0);
     now.setHours(0, 0, 0, 0);
-
     if (range === 'today') {
         return date.getTime() === now.getTime();
     }
-
     const pastDate = new Date(now);
     if (range === 'week') {
         pastDate.setDate(now.getDate() - 7);
     } else if (range === 'month') {
         pastDate.setDate(now.getDate() - 30);
     }
-    
     return date >= pastDate;
 };
 
 
-const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, students }) => { // <-- PROPS CHANGED
+// ... (EventManagement component is unchanged) ...
+const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, students }) => { 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isParticipantModalOpen, setIsParticipantModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<SportEvent | undefined>(undefined);
@@ -280,23 +333,20 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
         const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = typeFilter === 'all' || event.type === typeFilter;
         const matchesStatus = statusFilter === 'all' || event.status === statusFilter;
-        // Use createdAt for date filter
         const createdAt = (event as any).createdAt || new Date().toISOString();
         const matchesDate = dateFilter === 'all' || isDateWithinRange(createdAt, dateFilter as any);
         return matchesSearch && matchesType && matchesStatus && matchesDate;
       });
   }, [events, searchTerm, typeFilter, statusFilter, dateFilter]);
   
-  // --- HANDLERS UPDATED TO USE API ---
-
   const handleAddEvent = async (eventData: Omit<SportEvent, 'id' | 'participants' | 'createdAt' | 'updatedAt'>) => {
     try {
         const { data: newEvent } = await api.post('/events', {...eventData, participants: []});
         setEvents(prev => [...prev, newEvent]);
         setIsModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to add event", error);
-        alert("Failed to add event.");
+        alert(`Failed to add event: ${error.response?.data?.message || 'Server error'}`);
     }
   };
   
@@ -307,9 +357,9 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
         setEvents(prev => prev.map(e => ((e as any)._id || e.id) === eventId ? updatedEvent : e));
         setIsModalOpen(false);
         setEditingEvent(undefined);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to update event", error);
-        alert("Failed to update event.");
+        alert(`Failed to update event: ${error.response?.data?.message || 'Server error'}`);
     }
   };
 
@@ -320,15 +370,13 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
             await api.delete(`/events/${eventId}`);
             setEvents(prev => prev.filter(e => ((e as any)._id || e.id) !== eventId));
             setEventToDelete(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to delete event", error);
-            alert("Failed to delete event.");
+            alert(`Failed to delete event: ${error.response?.data?.message || 'Server error'}`);
         }
     }
   };
   
-  // --- REST OF THE COMPONENT IS UNCHANGED ---
-
   const openEditModal = (event: SportEvent) => {
     setEditingEvent(event);
     setIsModalOpen(true);
