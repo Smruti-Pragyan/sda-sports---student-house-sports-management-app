@@ -9,17 +9,16 @@ import api from '../src/api';
 
 interface StudentManagementProps {
   students: Student[];
-  setStudents: React.Dispatch<React.SetStateAction<Student[]>>; // <-- CHANGED PROP
+  setStudents: React.Dispatch<React.SetStateAction<Student[]>>; 
   events: SportEvent[];
-  // dispatch is removed
 }
 
-// StudentForm is unchanged
+// StudentForm is UPDATED for the dropdown
 const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> | Student) => void; onCancel: () => void }> = ({ student, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     fullName: student?.fullName || '',
-    class: student?.class || '',
-    rollNumber: student?.rollNumber || '',
+    class: student?.class || '', // Will be '' for new student, which shows "Select a class"
+    uid: student?.uid || '', 
     phone: student?.phone || '',
     house: student?.house || HouseName.Yellow,
     category: student?.category || AgeCategory.U13,
@@ -47,12 +46,24 @@ const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student,
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
+          {/* --- THIS IS THE NEW DROPDOWN --- */}
           <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Class</label>
-          <input type="text" name="class" value={formData.class} onChange={handleChange} required className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500" />
+          <select 
+            name="class" 
+            value={formData.class} 
+            onChange={handleChange} 
+            required 
+            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="" disabled>Select a class</option>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
+              <option key={num} value={num.toString()}>{num}</option>
+            ))}
+          </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Roll Number</label>
-          <input type="text" name="rollNumber" value={formData.rollNumber} onChange={handleChange} required className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500" />
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Student UID</label>
+          <input type="text" name="uid" value={formData.uid} onChange={handleChange} required className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500" />
         </div>
       </div>
       <div>
@@ -91,7 +102,7 @@ const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student,
   );
 };
 
-// BulkRegisterModal is UPDATED to use API
+// BulkRegisterModal is UPDATED
 const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispatch<React.SetStateAction<Student[]>>, students: Student[]}> = ({ onClose, setStudents, students }) => {
     const [csvData, setCsvData] = useState('');
     
@@ -100,19 +111,29 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
         let entryIndex = 0;
         const houseNames = Object.values(HouseName);
         const categories = Object.values(AgeCategory);
+        
+        // --- ADDED: Create a list of valid class strings ---
+        const validClasses = new Set(Array.from({ length: 12 }, (_, i) => (i + 1).toString()));
 
         const newStudents = lines.map(line => {
-            const [fullName, studentClass, rollNumber, phone] = line.split(',').map(item => item.trim());
-            if (fullName && studentClass && rollNumber && phone) {
-                // Basic validation for phone: check if it's 10 digits
+            const [fullName, studentClass, uid, phone] = line.split(',').map(item => item.trim());
+            
+            if (fullName && studentClass && uid && phone) {
+                // --- ADDED: Validation for class and phone ---
                 if (!/^[0-9]{10}$/.test(phone)) {
                     console.warn(`Skipping student ${fullName}: Phone number '${phone}' is not 10 digits.`);
                     return null;
                 }
+                if (!validClasses.has(studentClass)) {
+                     console.warn(`Skipping student ${fullName}: Class '${studentClass}' is not valid (must be 1-12).`);
+                    return null;
+                }
+                // --- End of validation ---
+
                 const student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> = {
                     fullName,
                     class: studentClass,
-                    rollNumber,
+                    uid,
                     phone,
                     house: houseNames[entryIndex % houseNames.length],
                     category: categories[entryIndex % categories.length],
@@ -124,7 +145,7 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
         }).filter((s): s is Omit<Student, 'id' | 'createdAt' | 'updatedAt'> => s !== null);
 
         if (newStudents.length === 0) {
-            alert('No valid student data found. Please check the format (FullName,Class,RollNumber,PhoneNumber) and ensure phone numbers are 10 digits.');
+            alert('No valid student data found. Please check the format (FullName,Class,UID,PhoneNumber) and ensure phone numbers are 10 digits and classes are 1-12.');
             return;
         }
 
@@ -138,7 +159,6 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
         const studentsToAdd = newStudents.slice(0, availableSlots);
         const rejectedCount = newStudents.length - studentsToAdd.length;
 
-        // --- NEW API CALL ---
         try {
             const { data: createdStudents } = await api.post('/students/bulk', { students: studentsToAdd });
             setStudents(prev => [...prev, ...createdStudents]);
@@ -149,9 +169,9 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
             }
             alert(message);
             onClose();
-        } catch (error) {
+        } catch (error: any) { 
             console.error("Failed to bulk add students", error);
-            alert("An error occurred while adding students.");
+            alert(`An error occurred while adding students: ${error.response?.data?.message || 'Server error'}`);
         }
     }
 
@@ -160,16 +180,16 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
             <p className="text-sm text-gray-600 dark:text-gray-400">
                 Paste student data in CSV format (one student per line):
                 <br />
-                <code className="bg-gray-200 dark:bg-gray-700 p-1 rounded">FullName,Class,RollNumber,PhoneNumber</code>
+                <code className="bg-gray-200 dark:bg-gray-700 p-1 rounded">FullName,Class,UID,PhoneNumber</code>
                 <br />
-                <span className="text-xs">Note: Phone number must be exactly 10 digits.</span>
+                <span className="text-xs">Note: Class must be 1-12. Phone number must be exactly 10 digits.</span>
             </p>
             <textarea
                 value={csvData}
                 onChange={e => setCsvData(e.target.value)}
                 rows={10}
                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="John Doe,10,15,1234567890&#10;Jane Smith,9,21,0987654321"
+                placeholder="John Doe,10,101,1234567890&#10;Jane Smith,9,102,0987654321" 
             />
              <div className="flex justify-end space-x-4 pt-4">
                 <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">Cancel</button>
@@ -183,26 +203,22 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
 const isDateWithinRange = (isoDateString: string, range: 'today' | 'week' | 'month'): boolean => {
     const date = new Date(isoDateString);
     const now = new Date();
-
     date.setHours(0, 0, 0, 0);
     now.setHours(0, 0, 0, 0);
-
     if (range === 'today') {
         return date.getTime() === now.getTime();
     }
-
     const pastDate = new Date(now);
     if (range === 'week') {
         pastDate.setDate(now.getDate() - 7);
     } else if (range === 'month') {
         pastDate.setDate(now.getDate() - 30);
     }
-    
     return date >= pastDate;
 };
 
 
-const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStudents, events }) => { // <-- PROPS CHANGED
+const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStudents, events }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | undefined>(undefined);
@@ -221,7 +237,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  // --- HANDLERS UPDATED TO USE API ---
+  // --- HANDLERS UPDATED TO USE API AND SHOW BETTER ERRORS ---
 
   const handleAddStudent = async (studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (students.length >= STUDENT_CAPACITY) {
@@ -232,23 +248,22 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
         const { data: newStudent } = await api.post('/students', studentData);
         setStudents(prev => [...prev, newStudent]);
         setIsModalOpen(false);
-    } catch (error) {
+    } catch (error: any) { 
         console.error("Failed to add student", error);
-        alert("Failed to add student.");
+        alert(`Failed to add student: ${error.response?.data?.message || 'Server error'}`);
     }
   };
   
   const handleEditStudent = async (studentData: Student) => {
     try {
-        // Use studentData.id for Mongoose _id, or just studentData._id if your type includes it
         const id = (studentData as any)._id || studentData.id;
         const { data: updatedStudent } = await api.put(`/students/${id}`, studentData);
         setStudents(prev => prev.map(s => ((s as any)._id || s.id) === id ? updatedStudent : s));
         setIsModalOpen(false);
         setEditingStudent(undefined);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to update student", error);
-        alert("Failed to update student.");
+        alert(`Failed to update student: ${error.response?.data?.message || 'Server error'}`);
     }
   };
 
@@ -259,9 +274,9 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
             await api.delete(`/students/${id}`);
             setStudents(prev => prev.filter(s => ((s as any)._id || s.id) !== id));
             setStudentToDelete(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to delete student", error);
-            alert("Failed to delete student.");
+            alert(`Failed to delete student: ${error.response?.data?.message || 'Server error'}`);
         }
     }
   };
@@ -273,14 +288,14 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
         setStudents(prev => prev.filter(s => !idsToDelete.includes((s as any)._id || s.id)));
         setSelectedStudents(new Set());
         setIsBulkDeleteModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to bulk delete students", error);
-        alert("Failed to bulk delete students.");
+        alert(`Failed to bulk delete students: ${error.response?.data?.message || 'Server error'}`);
     }
   };
 
 
-  // --- REST OF THE COMPONENT IS UNCHANGED ---
+  // --- (Rest of component is the same as my previous answer) ---
   
   const openEditModal = (student: Student) => {
     setEditingStudent(student);
@@ -298,11 +313,11 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
       .sort((a, b) => a.fullName.localeCompare(b.fullName))
       .filter(s => {
         const matchesSearchTerm = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.class.toLowerCase().includes(searchTerm.toLowerCase());
+            s.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.uid.toLowerCase().includes(searchTerm.toLowerCase());
         
         const matchesHouse = houseFilter === 'all' || s.house === houseFilter;
         const matchesCategory = categoryFilter === 'all' || s.category === categoryFilter;
-        // Use createdAt for date filter
         const createdAt = (s as any).createdAt || new Date().toISOString();
         const matchesDate = dateFilter === 'all' || isDateWithinRange(createdAt, dateFilter as any);
 
@@ -316,7 +331,6 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
 
     const participatedEvents = events
       .map(event => {
-        // Mongoose populates studentId as an object, so we need to check its _id
         const participant = event.participants.find(p => {
             const participantStudentId = (p.studentId as any)._id || p.studentId;
             return participantStudentId === studentId;
@@ -473,7 +487,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
             ) : (
                 <input
                   type="text"
-                  placeholder="Search by name or class..."
+                  placeholder="Search by name, class, or UID..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full sm:w-auto bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
@@ -533,7 +547,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
               <tr className="bg-gray-100 dark:bg-gray-700">
                 <th className="p-3">Full Name</th>
                 <th className="p-3">Class</th>
-                <th className="p-3">Roll No.</th>
+                <th className="p-3">UID</th> 
                 <th className="p-3">Category</th>
                 <th className="p-3">House</th>
                 <th className="p-3">Phone</th>
@@ -557,7 +571,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
                 >
                   <td className="p-3">{student.fullName}</td>
                   <td className="p-3">{student.class}</td>
-                  <td className="p-3">{student.rollNumber}</td>
+                  <td className="p-3">{student.uid}</td> 
                   <td className="p-3">{student.category}</td>
                   <td className="p-3">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${HOUSES.find(h => h.name === student.house)?.color}`}>
@@ -648,7 +662,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
         {viewingStudent && (
           <div className="space-y-4 text-gray-800 dark:text-gray-200">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Student ID</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Student ID (Internal)</p>
               <p className="font-mono bg-gray-100 dark:bg-gray-700 p-2 rounded text-sm">{(viewingStudent as any)._id || viewingStudent.id}</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -657,8 +671,8 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
                 <p>{viewingStudent.class}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Roll Number</p>
-                <p>{viewingStudent.rollNumber}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Student UID</p>
+                <p>{viewingStudent.uid}</p>
               </div>
             </div>
             <div>
@@ -698,7 +712,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
                         <h3 className="text-2xl font-semibold">{reportingStudent.fullName}</h3>
                         <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center space-x-4">
                             <span>Class: <strong>{reportingStudent.class}</strong></span>
-                            <span>Roll No: <strong>{reportingStudent.rollNumber}</strong></span>
+                            <span>UID: <strong>{reportingStudent.uid}</strong></span> 
                             <div className="flex items-center">
                             <span>House: </span>
                             <span className={`ml-2 px-2 py-0.5 text-xs font-semibold rounded-full text-white ${HOUSES.find(h => h.name === reportingStudent.house)?.color}`}>

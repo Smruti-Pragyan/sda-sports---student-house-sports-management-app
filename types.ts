@@ -20,7 +20,7 @@ export interface Student {
   id: string;
   fullName: string;
   class: string;
-  rollNumber: string;
+  uid: string; // CHANGED from rollNumber
   phone: string;
   house: HouseName;
   category: AgeCategory;

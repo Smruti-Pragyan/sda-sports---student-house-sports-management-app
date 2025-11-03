@@ -9,7 +9,7 @@ const studentSchema = mongoose.Schema(
     },
     fullName: { type: String, required: true },
     class: { type: String, required: true },
-    rollNumber: { type: String, required: true },
+    uid: { type: String, required: true, unique: true }, // ENSURE THIS IS LOWERCASE
     phone: { type: String, required: true },
     house: {
       type: String,

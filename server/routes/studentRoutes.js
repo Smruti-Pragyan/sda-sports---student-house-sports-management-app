@@ -18,19 +18,34 @@ router.get('/', async (req, res) => {
 // @desc    Create a new student
 // @route   POST /api/students
 router.post('/', async (req, res) => {
-  const { fullName, class: studentClass, rollNumber, phone, house, category } = req.body;
+  const { fullName, class: studentClass, uid, phone, house, category } = req.body; // CHANGED to uid
 
-  if (!fullName || !studentClass || !rollNumber || !phone || !house || !category) {
+  if (!fullName || !studentClass || !uid || !phone || !house || !category) { // CHANGED to uid
     return res.status(400).json({ message: 'Please fill all fields' });
   }
+
+  // --- ADDED: Check for uniqueness ---
+  const studentExists = await Student.findOne({ uid, user: req.user.id });
+  if (studentExists) {
+    return res.status(400).json({ message: 'A student with this UID already exists' });
+  }
+  // --- END OF ADDED BLOCK ---
 
   const student = new Student({
     ...req.body,
     user: req.user.id,
   });
 
-  const createdStudent = await student.save();
-  res.status(201).json(createdStudent);
+  try { // ADDED try/catch for uniqueness error
+    const createdStudent = await student.save();
+    res.status(201).json(createdStudent);
+  } catch (error) {
+    if (error.code === 11000) { // Handle duplicate key error
+        return res.status(400).json({ message: 'A student with this UID already exists' });
+    }
+    // This will now catch the "Path 'uid' is required" if the model is still wrong
+    res.status(400).json({ message: error.message || 'Error creating student', error });
+  }
 });
 
 // @desc    Create students in bulk
@@ -47,10 +62,14 @@ router.post('/bulk', async (req, res) => {
     }));
 
     try {
-        const createdStudents = await Student.insertMany(studentsToCreate);
+        const createdStudents = await Student.insertMany(studentsToCreate, { ordered: false }); // set ordered: false to allow partial success
         res.status(201).json(createdStudents);
     } catch (error) {
-        res.status(400).json({ message: 'Error creating students', error });
+        // Handle bulk write error (e.g., duplicates)
+        if (error.code === 11000) {
+             return res.status(400).json({ message: 'Error creating students: One or more UIDs already exist.' });
+        }
+        res.status(400).json({ message: error.message || 'Error creating students', error });
     }
 });
 
@@ -64,8 +83,15 @@ router.put('/:id', async (req, res) => {
     return res.status(404).json({ message: 'Student not found' });
   }
   
-  const updatedStudent = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(updatedStudent);
+  try { // ADDED try/catch for uniqueness error
+    const updatedStudent = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updatedStudent);
+  } catch (error) {
+     if (error.code === 11000) { // Handle duplicate key error
+        return res.status(400).json({ message: 'A student with this UID already exists' });
+    }
+    res.status(400).json({ message: error.message || 'Error updating student', error });
+  }
 });
 
 // @desc    Delete a student
