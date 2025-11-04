@@ -13,7 +13,7 @@ interface StudentManagementProps {
   events: SportEvent[];
 }
 
-// StudentForm is UPDATED for the dropdown
+// StudentForm is UPDATED for validation
 const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> | Student) => void; onCancel: () => void }> = ({ student, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     fullName: student?.fullName || '',
@@ -42,7 +42,16 @@ const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student,
     <form onSubmit={handleSubmit} className="space-y-4 text-gray-800 dark:text-gray-200">
       <div>
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Full Name</label>
-        <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500" />
+        <input 
+          type="text" 
+          name="fullName" 
+          value={formData.fullName} 
+          onChange={handleChange} 
+          required 
+          className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500"
+          pattern="[A-Za-z ]+"
+          title="Full name must contain only alphabets and spaces."
+        />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -63,7 +72,16 @@ const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student,
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Student UID</label>
-          <input type="text" name="uid" value={formData.uid} onChange={handleChange} required className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500" />
+          <input 
+            type="text" 
+            name="uid" 
+            value={formData.uid} 
+            onChange={handleChange} 
+            required 
+            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500"
+            pattern="[0-9]+"
+            title="Student UID must contain only numbers."
+          />
         </div>
       </div>
       <div>
@@ -102,7 +120,7 @@ const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student,
   );
 };
 
-// BulkRegisterModal is UPDATED
+// BulkRegisterModal is UPDATED for validation
 const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispatch<React.SetStateAction<Student[]>>, students: Student[]}> = ({ onClose, setStudents, students }) => {
     const [csvData, setCsvData] = useState('');
     
@@ -119,7 +137,15 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
             const [fullName, studentClass, uid, phone] = line.split(',').map(item => item.trim());
             
             if (fullName && studentClass && uid && phone) {
-                // --- ADDED: Validation for class and phone ---
+                // --- ADDED: Validation for name, class, uid, and phone ---
+                if (!/^[A-Za-z ]+$/.test(fullName)) {
+                    console.warn(`Skipping student ${fullName}: Name '${fullName}' must contain only letters and spaces.`);
+                    return null;
+                }
+                 if (!/^[0-9]+$/.test(uid)) {
+                    console.warn(`Skipping student ${fullName}: UID '${uid}' must contain only numbers.`);
+                    return null;
+                }
                 if (!/^[0-9]{10}$/.test(phone)) {
                     console.warn(`Skipping student ${fullName}: Phone number '${phone}' is not 10 digits.`);
                     return null;
@@ -145,7 +171,7 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
         }).filter((s): s is Omit<Student, 'id' | 'createdAt' | 'updatedAt'> => s !== null);
 
         if (newStudents.length === 0) {
-            alert('No valid student data found. Please check the format (FullName,Class,UID,PhoneNumber) and ensure phone numbers are 10 digits and classes are 1-12.');
+            alert('No valid student data found. Please check the format (FullName,Class,UID,PhoneNumber) and ensure names contain only letters/spaces, UIDs contain only numbers, phone numbers are 10 digits, and classes are 1-12.');
             return;
         }
 
@@ -182,7 +208,7 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
                 <br />
                 <code className="bg-gray-200 dark:bg-gray-700 p-1 rounded">FullName,Class,UID,PhoneNumber</code>
                 <br />
-                <span className="text-xs">Note: Class must be 1-12. Phone number must be exactly 10 digits.</span>
+                <span className="text-xs">Note: Name must be letters/spaces. Class must be 1-12. UID must be numbers. Phone number must be exactly 10 digits.</span>
             </p>
             <textarea
                 value={csvData}

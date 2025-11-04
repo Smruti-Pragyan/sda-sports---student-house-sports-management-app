@@ -94,19 +94,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// @desc    Delete a student
-// @route   DELETE /api/students/:id
-router.delete('/:id', async (req, res) => {
-  const student = await Student.findById(req.params.id);
-
-  if (!student || student.user.toString() !== req.user.id) {
-    return res.status(404).json({ message: 'Student not found' });
-  }
-
-  await student.deleteOne(); // Use deleteOne()
-  res.json({ id: req.params.id, message: 'Student removed' });
-});
-
+// --- THIS BLOCK WAS MOVED UP ---
 // @desc    Delete students in bulk
 // @route   DELETE /api/students/bulk
 router.delete('/bulk', async (req, res) => {
@@ -131,5 +119,26 @@ router.delete('/bulk', async (req, res) => {
         res.status(400).json({ message: 'Error deleting students', error });
     }
 });
+// --- END OF MOVED BLOCK ---
+
+// @desc    Delete a student
+// @route   DELETE /api/students/:id
+// **This route must come AFTER /bulk**
+router.delete('/:id', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+
+    if (!student || student.user.toString() !== req.user.id) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    await student.deleteOne(); // Use deleteOne()
+    res.json({ id: req.params.id, message: 'Student removed' });
+  } catch (error) {
+    // Catches errors like invalid ObjectId (which is what "bulk" was)
+    res.status(400).json({ message: 'Error deleting student', error: error.message });
+  }
+});
+
 
 export default router;
