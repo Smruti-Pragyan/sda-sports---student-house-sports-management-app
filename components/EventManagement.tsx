@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { type SportEvent, type Student, EventType, type Participant, AgeCategory, HouseName } from '../types'; 
 import Card from './common/Card';
 import Modal from './common/Modal';
-import { PlusIcon } from './Icons';
+import { PlusIcon, ErrorIcon } from './Icons'; // <-- IMPORTED ErrorIcon
 import api from '../src/api';
 import { HOUSES } from '../constants'; 
 
@@ -69,7 +69,7 @@ const EventForm: React.FC<{ event?: SportEvent; onSave: (event: Omit<SportEvent,
   );
 };
 
-// --- ManageParticipantsModal UPDATED ---
+// ... (ManageParticipantsModal component is unchanged) ...
 const ManageParticipantsModal: React.FC<{
     event: SportEvent,
     students: Student[],
@@ -182,7 +182,6 @@ const ManageParticipantsModal: React.FC<{
         }
     };
     
-    // --- UPDATED: Class list for dropdown ---
     const classOptions = ['all', ...Array.from({ length: 12 }, (_, i) => (i + 1).toString())];
 
     return (
@@ -213,7 +212,6 @@ const ManageParticipantsModal: React.FC<{
                         <option value="all">All Categories</option>
                         {Object.values(AgeCategory).map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    {/* --- UPDATED: Class filter dropdown options --- */}
                     <select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         {classOptions.map(c => <option key={c} value={c}>{c === 'all' ? 'All Classes' : c}</option>)}
                     </select>
@@ -466,25 +464,42 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currentEvents.map(event => (
-            <Card key={event.id} className="flex flex-col">
-                <div className="flex-grow">
-                    <div className="flex justify-between items-start">
-                        <h2 className="text-xl font-bold mb-2">{event.name}</h2>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${
-                            event.status === 'Completed' ? 'bg-gray-500' : event.status === 'Ongoing' ? 'bg-green-500' : 'bg-blue-500'
-                        }`}>{event.status}</span>
+        {currentEvents.map(event => {
+            // --- LOGIC FOR THE ERROR MESSAGE ---
+            const vacancies = event.maxParticipants - event.participants.length;
+            const isNotFull = vacancies > 0;
+            // --- END OF LOGIC ---
+            
+            return (
+                <Card key={event.id} className="flex flex-col">
+                    <div className="flex-grow">
+                        <div className="flex justify-between items-start">
+                            <h2 className="text-xl font-bold mb-2">{event.name}</h2>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${
+                                event.status === 'Completed' ? 'bg-gray-500' : event.status === 'Ongoing' ? 'bg-green-500' : 'bg-blue-500'
+                            }`}>{event.status}</span>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{event.type} Event</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">Participants: {event.participants.length} / {event.maxParticipants}</p>
+                        
+                        {/* --- THIS IS THE NEW ERROR MESSAGE BLOCK --- */}
+                        {isNotFull && (
+                            <p className="text-red-500 dark:text-red-400 text-sm font-medium mt-2 flex items-center">
+                                <ErrorIcon />
+                                {vacancies} {vacancies === 1 ? 'slot' : 'slots'} not filled yet.
+                            </p>
+                        )}
+                        {/* --- END OF NEW BLOCK --- */}
+
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{event.type} Event</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">Participants: {event.participants.length} / {event.maxParticipants}</p>
-                </div>
-                <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-4 flex justify-end space-x-2">
-                    <button onClick={() => openParticipantModal(event)} className="text-sm px-3 py-1.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800">Manage</button>
-                    <button onClick={() => openEditModal(event)} className="text-sm px-3 py-1.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800">Edit</button>
-                    <button onClick={() => setEventToDelete(event)} className="text-sm px-3 py-1.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800">Delete</button>
-                </div>
-            </Card>
-        ))}
+                    <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-4 flex justify-end space-x-2">
+                        <button onClick={() => openParticipantModal(event)} className="text-sm px-3 py-1.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800">Manage</button>
+                        <button onClick={() => openEditModal(event)} className="text-sm px-3 py-1.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800">Edit</button>
+                        <button onClick={() => setEventToDelete(event)} className="text-sm px-3 py-1.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800">Delete</button>
+                    </div>
+                </Card>
+            )
+        })}
       </div>
        {events.length === 0 && (
             <div className="text-center py-16 text-gray-500 dark:text-gray-400">

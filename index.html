@@ -57,6 +57,38 @@
       animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
     }
   }
+
+  /* --- ADDED BACK: For Login Success Confetti --- */
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(-100px) rotateZ(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(100vh) rotateZ(360deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes confetti-spin {
+    0% {
+      transform: rotateY(0deg);
+    }
+    100% {
+      transform: rotateY(360deg);
+    }
+  }
+
+  .confetti-piece {
+    position: absolute;
+    top: 0;
+    width: 10px;
+    height: 16px;
+    border-radius: 4px;
+    animation: confetti-fall 2.5s ease-out forwards, 
+                 confetti-spin 1s linear infinite;
+  }
+  /* --- END OF ADDED BLOCK --- */
 </style>
 
 </head>

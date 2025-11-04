@@ -2,10 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../src/context/AuthContext';
 import Card from './common/Card';
 import api from '../src/api';
-import { EyeIcon, EyeOffIcon, SdaLogo, SunIcon, MoonIcon, SpinnerIcon, BasketballIcon } from './Icons'; // Import SdaLogo, BasketballIcon
+import { EyeIcon, EyeOffIcon, SdaLogo, SunIcon, MoonIcon, SpinnerIcon, BasketballIcon } from './Icons'; 
 import { type Theme } from '../types'; 
 
-// --- NEW COMPONENT FOR BACKGROUND SPECKS ---
+// --- ADDED BACK: Confetti component for login success ---
+const Confetti: React.FC = () => (
+  <div className="absolute inset-0 overflow-hidden z-50 pointer-events-none">
+    {Array.from({ length: 50 }).map((_, i) => (
+      <div 
+        key={i} 
+        className="confetti-piece" 
+        style={{
+          left: `${Math.random() * 100}%`,
+          animationDelay: `${Math.random() * 0.5}s, ${Math.random() * 2}s`,
+          backgroundColor: ['#f44336', '#2196f3', '#4caf50', '#ffeb3b', '#e91e63', '#9c27b0'][i % 6]
+        }} 
+      />
+    ))}
+  </div>
+);
+
+// --- Component for background specks ---
 const FloatingSpecks: React.FC = () => (
   <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
     {Array.from({ length: 20 }).map((_, i) => {
@@ -30,7 +47,7 @@ const FloatingSpecks: React.FC = () => (
   </div>
 );
 
-// --- NEW COMPONENT FOR BASKETBALL ---
+// --- Component for basketball ---
 const BouncingBall: React.FC = () => (
   <div className="absolute -bottom-8 -right-8 w-24 h-24 z-20 [animation:bounce-low_2s_ease-in-out_infinite]">
     <BasketballIcon />
@@ -76,7 +93,7 @@ const AuthScreen: React.FC = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 750)); 
       await login(email, password);
-      setLoginStatus('success');
+      setLoginStatus('success'); // <-- Triggers confetti
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to login. Check email/password.');
       setLoginStatus('idle');
@@ -130,9 +147,11 @@ const AuthScreen: React.FC = () => {
   };
   
   return (
-    // --- UPDATED MAIN LAYOUT ---
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-600 dark:bg-blue-900 p-4 relative overflow-hidden transition-colors duration-300">
       
+      {/* --- ADDED BACK: Renders confetti on success --- */}
+      {loginStatus === 'success' && <Confetti />}
+
       <FloatingSpecks />
 
       <div className="absolute top-4 right-4 z-20">
@@ -145,10 +164,9 @@ const AuthScreen: React.FC = () => {
         </button>
       </div>
 
-      {/* --- ADDED HEADER SECTION --- */}
       <div 
         className="text-center z-10 [animation:logo-pop-in_0.5s_ease-out_forwards]"
-        style={{ animationDelay: '0.1s', opacity: 0 }} // Start animation
+        style={{ animationDelay: '0.1s', opacity: 0 }}
       >
         <SdaLogo />
         <h1 className="text-4xl font-bold text-white mt-4">SDA SPORTS</h1>
@@ -157,12 +175,11 @@ const AuthScreen: React.FC = () => {
         </p>
       </div>
       
-      {/* --- UPDATED CARD STYLING --- */}
       <Card 
         className="w-full max-w-md z-10 !bg-white dark:!bg-gray-800 shadow-2xl mt-8 relative overflow-hidden"
       >
         
-        {/* The bouncing ball is inside the card, but positioned absolutely */}
+        {/* Ball is here, but only shows on Sign Up screen */}
         {!isLoginView && <BouncingBall />}
         
         {error && <p className="text-red-500 text-center mb-4 text-sm">{error}</p>}
@@ -228,7 +245,7 @@ const AuthScreen: React.FC = () => {
                 <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.targe.value)}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     autoComplete="new-password"
                     className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500 pr-10"
@@ -269,7 +286,6 @@ const AuthScreen: React.FC = () => {
             </div>
            )}
 
-          {/* --- UPDATED BUTTON LAYOUT --- */}
           <div className="pt-4 space-y-3">
             <button 
               type="submit" 
