@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const DashboardIcon = () => (
-  <svg xmlns="http://www.w.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
   </svg>
 );
@@ -109,9 +109,6 @@ export const LogoutIcon = () => (
     </svg>
 );
 
-// ... (all your existing icon code) ...
-
-
 export const EyeIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -125,9 +122,6 @@ export const EyeOffIcon = () => (
     </svg>
 );
 
-
-// --- ADD THESE NEW ICONS BELOW ---
-
 export const MenuIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -138,4 +132,44 @@ export const CloseIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
+);
+
+// --- REMOVED OLD LOGO ---
+
+export const SunIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+);
+
+export const MoonIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+);
+
+export const SpinnerIcon = () => (
+    <svg className="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+);
+
+// --- ADDED NEW LOGO ---
+export const SdaLogo = () => (
+  <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto">
+      <circle cx="36" cy="36" r="36" fill="white"/>
+      <path d="M47.25 21.06C43.5 19.26 39.15 18.18 34.2 18.18C26.1 18.18 20.25 21.24 20.25 27.36C20.25 31.5 23.58 33.9 28.53 35.46C33.93 37.14 37.62 39.42 37.62 43.92C37.62 49.14 32.94 51.9 27.54 51.9C22.86 51.9 18.9 50.94 15.66 49.38L13.77 56.16C17.73 58.02 22.32 59.1 27.54 59.1C38.07 59.1 45.9 55.38 45.9 47.52C45.9 42.66 42.48 40.38 37.44 38.82C32.22 37.2 29.07 35.22 29.07 31.68C29.07 27.6 32.31 24.9 34.47 24.9C38.07 24.9 40.95 25.74 43.47 26.94L47.25 21.06Z" fill="#2563EB"/>
+  </svg>
+);
+
+// --- ADDED BASKETBALL ICON ---
+export const BasketballIcon = () => (
+  <svg className="w-24 h-24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="48" fill="#F97316"/>
+      <path d="M50 2C50 2 45 50 50 98" stroke="black" strokeWidth="2.5"/>
+      <path d="M2 50C2 50 50 55 98 50" stroke="black" strokeWidth="2.5"/>
+      <path d="M20.1 20.1C20.1 20.1 50 35 79.9 79.9" stroke="black" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M20.1 79.9C20.1 79.9 50 65 79.9 20.1" stroke="black" strokeWidth="2.5" strokeLinecap="round"/>
+  </svg>
 );
