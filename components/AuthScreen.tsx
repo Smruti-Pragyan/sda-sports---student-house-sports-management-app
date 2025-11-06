@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../src/context/AuthContext';
 import Card from './common/Card';
 import api from '../src/api';
-import { EyeIcon, EyeOffIcon, SdaLogo, SunIcon, MoonIcon, SpinnerIcon, BasketballIcon } from './Icons'; 
+// MODIFIED: Removed SdaLogo from this import
+import { EyeIcon, EyeOffIcon, SunIcon, MoonIcon, SpinnerIcon, BasketballIcon } from './Icons'; 
 import { type Theme } from '../types'; 
 
 // --- ADDED BACK: Confetti component for login success ---
@@ -149,7 +150,6 @@ const AuthScreen: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-600 dark:bg-blue-900 p-4 relative overflow-hidden transition-colors duration-300">
       
-      {/* --- ADDED BACK: Renders confetti on success --- */}
       {loginStatus === 'success' && <Confetti />}
 
       <FloatingSpecks />
@@ -168,7 +168,9 @@ const AuthScreen: React.FC = () => {
         className="text-center z-10 [animation:logo-pop-in_0.5s_ease-out_forwards]"
         style={{ animationDelay: '0.1s', opacity: 0 }}
       >
-        <SdaLogo />
+        {/* --- THIS IS THE MODIFIED LINE --- */}
+        <img src="/sda-logo.png" alt="SDA Logo" className="w-[72px] h-[72px] mx-auto rounded-full" />
+        
         <h1 className="text-4xl font-bold text-white mt-4">SDA SPORTS</h1>
         <p className="text-lg text-white/90 mt-1">
           Track. Compete. Win Together.
@@ -179,7 +181,6 @@ const AuthScreen: React.FC = () => {
         className="w-full max-w-md z-10 !bg-white dark:!bg-gray-800 shadow-2xl mt-8 relative overflow-hidden"
       >
         
-        {/* Ball is here, but only shows on Sign Up screen */}
         {!isLoginView && <BouncingBall />}
         
         {error && <p className="text-red-500 text-center mb-4 text-sm">{error}</p>}
