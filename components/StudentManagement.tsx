@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { type Student, HouseName, AgeCategory, type SportEvent, EventType } from '../types';
 import Card from './common/Card';
 import Modal from './common/Modal';
+// --- SdaLogo import removed ---
 import { PlusIcon, UploadIcon, TrashIcon, ReportIcon, ShareIcon } from './Icons';
 import { HOUSES, STUDENT_CAPACITY } from '../constants';
 import Pagination from './common/Pagination';
@@ -725,14 +726,27 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
           </div>
         )}
       </Modal>
+      
+      {/* --- REPORT MODAL (UPDATED) --- */}
       <Modal isOpen={!!reportingStudent} onClose={() => setReportingStudent(null)} title="Progress Report" size="2xl">
         {reportingStudent && studentReportData && (
           <div>
             <div ref={reportContentRef} id="student-report-content" className="p-6 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                {/* --- LOGO CHANGED TO IMG TAG --- */}
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src="/sda-logo.png" 
+                    alt="SDA Logo" 
+                    className="h-16 w-auto" // 64px height, auto width
+                    crossOrigin="anonymous" // Important for html2canvas
+                  />
+                </div>
                 <div className="text-center mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 className="text-3xl font-bold">Progress Report</h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">SDA Sports Management</p>
                 </div>
+                {/* --- END OF LOGO BLOCK --- */}
+
                 <div className="space-y-6">
                     <div>
                         <h3 className="text-2xl font-semibold">{reportingStudent.fullName}</h3>
@@ -796,6 +810,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
                     </div>
                 </div>
             </div>
+            {/* --- EXPORT BUTTONS --- */}
             <div className="flex justify-end items-center space-x-2 pt-6 border-t border-gray-200 dark:border-gray-700 mt-6">
                 <button type="button" onClick={() => handleExport('png')} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400">
                     <ShareIcon /><span>{isExporting ? 'Exporting...' : 'Save as Image'}</span>
