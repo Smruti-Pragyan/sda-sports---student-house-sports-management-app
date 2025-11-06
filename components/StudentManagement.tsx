@@ -264,6 +264,23 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
+  // --- NEW STATE TO HOLD THE LOGO DATA URI ---
+  const [logoDataUri, setLogoDataUri] = useState<string>('');
+
+  // --- NEW useEffect TO FETCH AND CONVERT LOGO ---
+  useEffect(() => {
+    fetch('/sda-logo.png')
+      .then(response => response.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoDataUri(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(error => console.error("Error fetching logo:", error));
+  }, []); // Runs once on component mount
+
   // --- HANDLERS UPDATED TO USE API AND SHOW BETTER ERRORS ---
 
   const handleAddStudent = async (studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -386,19 +403,26 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
     };
   }, [reportingStudent, events]);
   
+  // --- handleExport UPDATED ---
   const handleExport = async (format: 'pdf' | 'png') => {
     if (!reportContentRef.current || !reportingStudent) return;
     setIsExporting(true);
 
     const canvas = await (window as any).html2canvas(reportContentRef.current, {
         scale: 3,
-        useCORS: true,
+        useCORS: true, // Keep this, works with the Data URI
         backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
         onclone: (clonedDoc) => {
             const reportNode = clonedDoc.getElementById('student-report-content');
             if (reportNode) {
               reportNode.style.color = document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827';
+              // --- BUGFIX for dark mode background ---
               reportNode.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff';
+            }
+            // --- NEW LOGIC to fix logo in clone ---
+            const logoInClone = clonedDoc.getElementById('report-logo-img') as HTMLImageElement | null;
+            if (logoInClone) {
+                logoInClone.src = logoDataUri; // Force the clone to use the data URI
             }
         }
     });
@@ -732,14 +756,18 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
         {reportingStudent && studentReportData && (
           <div>
             <div ref={reportContentRef} id="student-report-content" className="p-6 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                {/* --- LOGO CHANGED TO IMG TAG --- */}
+                {/* --- LOGO CHANGED TO IMG TAG with Data URI --- */}
                 <div className="flex justify-center mb-4">
-                  <img 
-                    src="/sda-logo.png" 
-                    alt="SDA Logo" 
-                    className="h-16 w-auto" // 64px height, auto width
-                    crossOrigin="anonymous" // Important for html2canvas
-                  />
+                  {logoDataUri ? (
+                    <img 
+                      id="report-logo-img" // Added ID for the clone step
+                      src={logoDataUri} 
+                      alt="SDA Logo" 
+                      className="h-16 w-auto" // 64px height, auto width
+                    />
+                  ) : (
+                    <div className="h-16 w-16 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                  )}
                 </div>
                 <div className="text-center mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 className="text-3xl font-bold">Progress Report</h2>
