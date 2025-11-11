@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { type SportEvent, type Student, EventType, type Participant, AgeCategory, HouseName } from '../types'; 
 import Card from './common/Card';
 import Modal from './common/Modal';
-import { PlusIcon, ErrorIcon } from './Icons'; // <-- IMPORTED ErrorIcon
+import { PlusIcon, ErrorIcon } from './Icons';
 import api from '../src/api';
 import { HOUSES } from '../constants'; 
 
@@ -12,7 +12,6 @@ interface EventManagementProps {
   students: Student[];
 }
 
-// ... (EventForm component is unchanged) ...
 const EventForm: React.FC<{ event?: SportEvent; onSave: (event: Omit<SportEvent, 'id' | 'participants' | 'createdAt' | 'updatedAt'> | SportEvent) => void; onCancel: () => void }> = ({ event, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: event?.name || '',
@@ -69,13 +68,13 @@ const EventForm: React.FC<{ event?: SportEvent; onSave: (event: Omit<SportEvent,
   );
 };
 
-// ... (ManageParticipantsModal component is unchanged) ...
 const ManageParticipantsModal: React.FC<{
     event: SportEvent,
     students: Student[],
+    events: SportEvent[], 
     onClose: () => void,
     setEvents: React.Dispatch<React.SetStateAction<SportEvent[]>>
-}> = ({ event, students, onClose, setEvents }) => {
+}> = ({ event, students, events, onClose, setEvents }) => { 
     const [participants, setParticipants] = useState(event.participants.map(p => ({
         studentId: (p.studentId as any)._id || p.studentId,
         score: p.score
@@ -96,6 +95,7 @@ const ManageParticipantsModal: React.FC<{
     );
     const [scoreErrors, setScoreErrors] = useState<Record<string, boolean>>({});
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [addParticipantError, setAddParticipantError] = useState<string | null>(null);
     
     const handleHouseFilterChange = (house: HouseName) => {
         const newFilters = new Set(houseFilters);
@@ -125,12 +125,43 @@ const ManageParticipantsModal: React.FC<{
     const vacancies = maxParticipants - participants.length;
 
     const handleAddParticipant = () => {
-        if (selectedStudentId && !isFull) {
-            const newParticipant = { studentId: selectedStudentId, score: 0 };
-            setParticipants(prev => [...prev, newParticipant]);
-            setScoreInputs(prev => ({ ...prev, [selectedStudentId]: '0' }));
-            setSelectedStudentId('');
+        setAddParticipantError(null); 
+        if (!selectedStudentId || isFull) return;
+
+        // --- FIX: Individual Event Limit Check (Max 3) ---
+        if (event.type === EventType.Individual) {
+            const studentIdToCheck = selectedStudentId; 
+            
+            // Count all individual events where the student is ALREADY confirmed
+            const currentIndividualEventsCount = events.reduce((count, e) => {
+                // Only count individual events
+                if (e.type !== EventType.Individual) return count;
+
+                // Robustly check if student is confirmed in this event in the global list
+                const isConfirmed = e.participants.some(p => {
+                    // Use robust ID extraction for checking against global events list:
+                    const pId = (p.studentId as any)._id || p.studentId;
+                    return pId === studentIdToCheck;
+                });
+                
+                if (isConfirmed) {
+                    return count + 1;
+                }
+                return count;
+            }, 0);
+
+            // If the current count is 3, adding this one would be the 4th, so block it.
+            if (currentIndividualEventsCount >= 3) {
+                setAddParticipantError(`Cannot add student: Already enrolled in the maximum limit of 3 individual events.`);
+                return;
+            }
         }
+        // --- END FIX ---
+        
+        const newParticipant = { studentId: selectedStudentId, score: 0 };
+        setParticipants(prev => [...prev, newParticipant]);
+        setScoreInputs(prev => ({ ...prev, [selectedStudentId]: '0' }));
+        setSelectedStudentId('');
     };
     
     const handleRemoveParticipant = (studentId: string) => {
@@ -251,11 +282,17 @@ const ManageParticipantsModal: React.FC<{
             
             {isFull ? (
                 <p className="text-center text-sm text-yellow-600 dark:text-yellow-400">
-                    Event is full. ({maxParticipants} / {maxParticipants} Filled)
+                    Event is full. ({participants.length} / {maxParticipants} Filled)
                 </p>
             ) : (
                 <p className="text-center text-sm text-green-600 dark:text-green-400">
                     {vacancies} {vacancies === 1 ? 'vacancy' : 'vacancies'} remaining.
+                </p>
+            )}
+
+            {addParticipantError && ( 
+                <p className="text-sm text-red-500 text-center pt-2 flex items-center justify-center">
+                    <ErrorIcon /> {addParticipantError}
                 </p>
             )}
             
@@ -294,7 +331,6 @@ const ManageParticipantsModal: React.FC<{
     );
 }
 
-// ... (isDateWithinRange function is unchanged) ...
 const isDateWithinRange = (isoDateString: string, range: 'today' | 'week' | 'month'): boolean => {
     const date = new Date(isoDateString);
     const now = new Date();
@@ -313,7 +349,6 @@ const isDateWithinRange = (isoDateString: string, range: 'today' | 'week' | 'mon
 };
 
 
-// ... (EventManagement component is unchanged) ...
 const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, students }) => { 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isParticipantModalOpen, setIsParticipantModalOpen] = useState(false);
@@ -527,6 +562,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
             <ManageParticipantsModal
                 event={managingParticipantsEvent}
                 students={students}
+                events={events} 
                 onClose={() => setIsParticipantModalOpen(false)}
                 setEvents={setEvents}
             />

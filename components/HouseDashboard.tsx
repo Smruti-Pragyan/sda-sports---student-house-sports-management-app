@@ -28,7 +28,10 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
     let points = 0;
     events.forEach(event => {
       event.participants.forEach(p => {
-        const student = houseStudents.find(s => s.id === p.studentId);
+        // FIX: Robustly extract student ID from participant data (p.studentId might be an object if populated)
+        const pStudentId = (p.studentId as any)._id || p.studentId;
+        const student = houseStudents.find(s => s.id === pStudentId);
+        // End Fix
         if (student) {
           points += p.score;
         }
@@ -41,13 +44,17 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
     const participatedEvents: Record<string, string[]> = {};
     
     houseStudents.forEach(student => {
+        // Initialize map keys using the student's local ID (which holds the Mongoose ID)
         participatedEvents[student.id] = [];
     });
 
     events.forEach(event => {
         event.participants.forEach(p => {
-            if (participatedEvents[p.studentId]) {
-                participatedEvents[p.studentId].push(event.name);
+            // FIX: Robustly extract student ID from participant data (object or string)
+            const studentId = (p.studentId as any)._id || p.studentId; 
+            
+            if (participatedEvents[studentId]) {
+                participatedEvents[studentId].push(event.name);
             }
         });
     });
@@ -97,7 +104,6 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              {/* THIS IS YOUR REQUESTED CHANGE (snippet 2) */}
               <tr className="bg-gray-100 dark:bg-gray-700">
                 <th className="p-3">Full Name</th>
                 <th className="p-3">Class</th>
@@ -107,12 +113,14 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
             </thead>
             <tbody>
               {paginatedHouseStudents.map(student => {
+                // Use the map key created by the memoized function
                 const participatedEvents = studentParticipatedEvents[student.id] || [];
                 return (
                   <tr key={student.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800">
                     <td className="p-3">{student.fullName}</td>
                     <td className="p-3">{student.class}</td>
-                    <td className="p-3">{student.uid}</td> {/* CHANGED from student.rollNumber */}
+                    <td className="p-3">{student.uid}</td>
+                    {/* This line now works correctly due to the fixes in Steps 1 and 3 */}
                     <td className="p-3">{participatedEvents.length > 0 ? participatedEvents.join(', ') : 'None'}</td>
                   </tr>
                 )

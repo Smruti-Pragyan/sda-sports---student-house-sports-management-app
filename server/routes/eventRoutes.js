@@ -10,7 +10,8 @@ router.use(protect);
 // @desc    Get all events
 // @route   GET /api/events
 router.get('/', async (req, res) => {
-  const events = await Event.find({ user: req.user.id }).populate('participants.studentId', 'fullName');
+  // FIX: Explicitly populate 'fullName' AND '_id' so frontend can correctly identify participants.
+  const events = await Event.find({ user: req.user.id }).populate('participants.studentId', 'fullName _id');
   res.json(events);
 });
 
