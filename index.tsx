@@ -1,9 +1,8 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { AuthProvider } from './src/context/AuthContext';
 import App from './App';
-
+import ErrorBoundary from './components/ErrorBoundary'; // <-- Import it
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -13,9 +12,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AuthProvider> {/* <-- 2. ADD THIS WRAPPER LINE */}
-      <App />
-    </AuthProvider> {/* <-- 3. ADD THIS WRAPPER LINE */}
-    
+    <ErrorBoundary> {/* <-- Wrap everything with ErrorBoundary */}
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

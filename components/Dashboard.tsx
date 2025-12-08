@@ -1,5 +1,3 @@
-
-
 import React, { useMemo } from 'react';
 import { type Student, type SportEvent, type Theme, HouseName } from '../types';
 import { HOUSES } from '../constants';
@@ -15,8 +13,10 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
 
   const housePoints = useMemo(() => {
-    // FIX: Explicitly set the type for `studentHouseMap` to resolve a type inference issue.
-    const studentHouseMap = new Map<string, HouseName>(students.map(s => [s.id, s.house]));
+    // FIX: Use _id if available, fallback to id. Key fix for MongoDB data.
+    const studentHouseMap = new Map<string, HouseName>(
+      students.map(s => [s._id || s.id, s.house])
+    );
 
     const points: Record<HouseName, number> = {
       [HouseName.Yellow]: 0,
@@ -27,7 +27,12 @@ const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
 
     for (const event of events) {
       for (const p of event.participants) {
-        const house = studentHouseMap.get(p.studentId);
+        // FIX: Handle both string IDs and populated objects
+        const pStudentId = typeof p.studentId === 'string' 
+          ? p.studentId 
+          : (p.studentId as any)._id || (p.studentId as any).id;
+
+        const house = studentHouseMap.get(pStudentId);
         if (house) {
           points[house] += p.score;
         }

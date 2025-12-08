@@ -18,9 +18,10 @@ export enum AgeCategory {
 
 export interface Student {
   id: string;
+  _id?: string; // Added for MongoDB compatibility
   fullName: string;
   class: string;
-  uid: string; // CHANGED from rollNumber
+  uid: string;
   phone: string;
   house: HouseName;
   category: AgeCategory;
@@ -29,12 +30,13 @@ export interface Student {
 }
 
 export interface Participant {
-  studentId: string;
+  studentId: string | { _id: string; fullName: string }; // Updated to handle populated data
   score: number;
 }
 
 export interface SportEvent {
   id: string;
+  _id?: string; // Added for MongoDB compatibility
   name: string;
   type: EventType;
   status: 'Upcoming' | 'Ongoing' | 'Completed';
@@ -55,6 +57,7 @@ export type View = 'dashboard' | 'students' | 'events' | 'settings' | 'profile' 
 export type Theme = 'light' | 'dark';
 
 export interface AdminProfile {
+    _id?: string;
     name: string;
     email: string;
     profilePictureUrl: string;

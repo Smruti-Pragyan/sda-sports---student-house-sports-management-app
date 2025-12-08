@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { type SportEvent, type Student, EventType, type Participant, AgeCategory, HouseName } from '../types'; 
+import { type SportEvent, type Student, EventType, AgeCategory, HouseName } from '../types'; 
 import Card from './common/Card';
 import Modal from './common/Modal';
 import { PlusIcon, ErrorIcon } from './Icons';
@@ -75,8 +75,9 @@ const ManageParticipantsModal: React.FC<{
     onClose: () => void,
     setEvents: React.Dispatch<React.SetStateAction<SportEvent[]>>
 }> = ({ event, students, events, onClose, setEvents }) => { 
+    // FIX: Robust ID extraction
     const [participants, setParticipants] = useState(event.participants.map(p => ({
-        studentId: (p.studentId as any)._id || p.studentId,
+        studentId: typeof p.studentId === 'string' ? p.studentId : (p.studentId._id || (p.studentId as any).id),
         score: p.score
     })));
     const [maxParticipants, setMaxParticipants] = useState(event.maxParticipants);
@@ -88,7 +89,7 @@ const ManageParticipantsModal: React.FC<{
 
     const [scoreInputs, setScoreInputs] = useState<Record<string, string>>(() =>
         event.participants.reduce((acc, p) => {
-            const id = (p.studentId as any)._id || p.studentId;
+            const id = typeof p.studentId === 'string' ? p.studentId : (p.studentId._id || (p.studentId as any).id);
             acc[id] = p.score.toString();
             return acc;
         }, {} as Record<string, string>)
@@ -109,7 +110,7 @@ const ManageParticipantsModal: React.FC<{
 
     const availableStudents = useMemo(() => {
         return students.filter(s => {
-            const studentId = (s as any)._id || s.id;
+            const studentId = s._id || s.id;
             const isAlreadyParticipant = participants.some(p => p.studentId === studentId);
             if (isAlreadyParticipant) return false;
 
@@ -128,19 +129,14 @@ const ManageParticipantsModal: React.FC<{
         setAddParticipantError(null); 
         if (!selectedStudentId || isFull) return;
 
-        // --- FIX: Individual Event Limit Check (Max 3) ---
         if (event.type === EventType.Individual) {
             const studentIdToCheck = selectedStudentId; 
             
-            // Count all individual events where the student is ALREADY confirmed
             const currentIndividualEventsCount = events.reduce((count, e) => {
-                // Only count individual events
                 if (e.type !== EventType.Individual) return count;
 
-                // Robustly check if student is confirmed in this event in the global list
                 const isConfirmed = e.participants.some(p => {
-                    // Use robust ID extraction for checking against global events list:
-                    const pId = (p.studentId as any)._id || p.studentId;
+                    const pId = typeof p.studentId === 'string' ? p.studentId : (p.studentId._id || (p.studentId as any).id);
                     return pId === studentIdToCheck;
                 });
                 
@@ -150,13 +146,11 @@ const ManageParticipantsModal: React.FC<{
                 return count;
             }, 0);
 
-            // If the current count is 3, adding this one would be the 4th, so block it.
             if (currentIndividualEventsCount >= 3) {
                 setAddParticipantError(`Cannot add student: Already enrolled in the maximum limit of 3 individual events.`);
                 return;
             }
         }
-        // --- END FIX ---
         
         const newParticipant = { studentId: selectedStudentId, score: 0 };
         setParticipants(prev => [...prev, newParticipant]);
@@ -203,9 +197,9 @@ const ManageParticipantsModal: React.FC<{
         };
 
         try {
-            const eventId = (event as any)._id || event.id;
+            const eventId = event._id || event.id;
             const { data: savedEvent } = await api.put(`/events/${eventId}`, updatedEventData);
-            setEvents(prev => prev.map(e => ((e as any)._id || e.id) === eventId ? savedEvent : e));
+            setEvents(prev => prev.map(e => (e._id || e.id) === eventId ? savedEvent : e));
             onClose();
         } catch (error) {
             console.error("Failed to update event participants", error);
@@ -273,7 +267,7 @@ const ManageParticipantsModal: React.FC<{
                 <select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} disabled={isFull} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2 mt-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                     <option value="">Select a student</option>
                     {availableStudents.map(s => {
-                        const studentId = (s as any)._id || s.id;
+                        const studentId = s._id || s.id;
                         return <option key={studentId} value={studentId}>{s.fullName} ({s.class}) - {s.house}</option>
                     })}
                 </select>
@@ -299,7 +293,7 @@ const ManageParticipantsModal: React.FC<{
             <h4 className="font-semibold text-lg pt-4">Current Participants & Scores</h4>
             <div className="space-y-2 max-h-60 overflow-y-auto">
                 {participants.map(p => {
-                    const student = students.find(s => ((s as any)._id || s.id) === p.studentId);
+                    const student = students.find(s => (s._id || s.id) === p.studentId);
                     const isInvalid = scoreErrors[p.studentId];
                     return (
                         <div key={p.studentId} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded">
@@ -385,9 +379,9 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
   
   const handleEditEvent = async (eventData: SportEvent) => {
     try {
-        const eventId = (eventData as any)._id || eventData.id;
+        const eventId = eventData._id || eventData.id;
         const { data: updatedEvent } = await api.put(`/events/${eventId}`, eventData);
-        setEvents(prev => prev.map(e => ((e as any)._id || e.id) === eventId ? updatedEvent : e));
+        setEvents(prev => prev.map(e => (e._id || e.id) === eventId ? updatedEvent : e));
         setIsModalOpen(false);
         setEditingEvent(undefined);
     } catch (error: any) {
@@ -399,9 +393,9 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
   const handleConfirmDelete = async () => {
     if (eventToDelete) {
         try {
-            const eventId = (eventToDelete as any)._id || eventToDelete.id;
+            const eventId = eventToDelete._id || eventToDelete.id;
             await api.delete(`/events/${eventId}`);
-            setEvents(prev => prev.filter(e => ((e as any)._id || e.id) !== eventId));
+            setEvents(prev => prev.filter(e => (e._id || e.id) !== eventId));
             setEventToDelete(null);
         } catch (error: any) {
             console.error("Failed to delete event", error);
@@ -433,7 +427,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
   };
 
   const isFiltered = searchTerm !== '' || typeFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all';
-  const currentEvents = filteredEvents.map(e => ({...e, id: (e as any)._id || e.id}));
+  const currentEvents = filteredEvents.map(e => ({...e, id: e._id || e.id}));
 
   return (
     <div className="p-8">
