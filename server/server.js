@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
-import houseRoutes from './routes/houseRoutes.js'; // <--- Import this
+import houseRoutes from './routes/houseRoutes.js'; 
 
 // Load env vars
 dotenv.config();
@@ -34,7 +34,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/api/houses', houseRoutes); // <--- Add this line
+app.use('/api/houses', houseRoutes);
 
 app.get('/', (req, res) => {
   res.send('SDA Sports API is running...');

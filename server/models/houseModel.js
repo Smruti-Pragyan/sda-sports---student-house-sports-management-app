@@ -17,6 +17,11 @@ const houseSchema = mongoose.Schema(
       required: true,
       default: 0,
     },
+    eventPoints: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
   },
   {
     timestamps: true,

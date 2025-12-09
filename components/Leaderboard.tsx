@@ -14,38 +14,47 @@ interface LeaderboardProps {
 const Leaderboard: React.FC<LeaderboardProps> = ({ students, events }) => {
     const { housePoints: eventHousePoints, studentPoints } = usePoints(students, events);
     
-    // State for initial/bonus points from DB
+    // State for initial/bonus points and event points from backend
     const [initialPoints, setInitialPoints] = useState<Record<HouseName, number>>({
         [HouseName.Yellow]: 0,
         [HouseName.Blue]: 0,
         [HouseName.Green]: 0,
         [HouseName.Red]: 0,
     });
+    const [eventPointsBackend, setEventPointsBackend] = useState<Record<HouseName, number>>({
+        [HouseName.Yellow]: 0,
+        [HouseName.Blue]: 0,
+        [HouseName.Green]: 0,
+        [HouseName.Red]: 0,
+    });
 
-    // Fetch initial points on mount
+    // Fetch initial and event points from backend on mount
     useEffect(() => {
         const fetchHousePoints = async () => {
-        try {
-            const { data } = await api.get('/houses');
-            const pointsMap: Record<string, number> = {};
-            data.forEach((house: any) => {
-            pointsMap[house.name] = house.initialPoints;
-            });
-            setInitialPoints(prev => ({ ...prev, ...pointsMap }));
-        } catch (error) {
-            console.error("Failed to fetch house points", error);
-        }
+            try {
+                const { data } = await api.get('/houses');
+                const initialMap: Record<string, number> = {};
+                const eventMap: Record<string, number> = {};
+                data.forEach((house: any) => {
+                    initialMap[house.name] = house.initialPoints;
+                    eventMap[house.name] = house.eventPoints;
+                });
+                setInitialPoints(prev => ({ ...prev, ...initialMap }));
+                setEventPointsBackend(prev => ({ ...prev, ...eventMap }));
+            } catch (error) {
+                console.error("Failed to fetch house points", error);
+            }
         };
         fetchHousePoints();
     }, []);
 
-    // Combine event points with initial points
+    // Combine event points from backend with initial points
     const finalHousePoints = useMemo(() => {
-        return eventHousePoints.map(hp => ({
-            ...hp,
-            score: hp.score + (initialPoints[hp.name] || 0)
+        return Object.keys(eventPointsBackend).map(houseName => ({
+            name: houseName as HouseName,
+            score: (eventPointsBackend[houseName as HouseName] || 0) + (initialPoints[houseName as HouseName] || 0)
         })).sort((a, b) => b.score - a.score);
-    }, [eventHousePoints, initialPoints]);
+    }, [eventPointsBackend, initialPoints]);
 
     const [activeTab, setActiveTab] = useState<'house' | 'student'>('house');
     const [classFilter, setClassFilter] = useState('all');

@@ -15,24 +15,33 @@ interface PointsSystemProps {
 const PointsSystem: React.FC<PointsSystemProps> = ({ students, events }) => {
   const { housePoints: eventPoints } = usePoints(students, events);
   
-  // State for initial/bonus points input
+  // State for initial/bonus points and event points from backend
   const [initialPoints, setInitialPoints] = useState<Record<HouseName, number>>({
     [HouseName.Yellow]: 0,
     [HouseName.Blue]: 0,
     [HouseName.Green]: 0,
     [HouseName.Red]: 0,
   });
+  const [eventPointsBackend, setEventPointsBackend] = useState<Record<HouseName, number>>({
+    [HouseName.Yellow]: 0,
+    [HouseName.Blue]: 0,
+    [HouseName.Green]: 0,
+    [HouseName.Red]: 0,
+  });
 
-  // Fetch initial points from backend on mount
+  // Fetch initial and event points from backend on mount
   useEffect(() => {
     const fetchHousePoints = async () => {
       try {
         const { data } = await api.get('/houses');
-        const pointsMap: Record<string, number> = {};
+        const initialMap: Record<string, number> = {};
+        const eventMap: Record<string, number> = {};
         data.forEach((house: any) => {
-          pointsMap[house.name] = house.initialPoints;
+          initialMap[house.name] = house.initialPoints;
+          eventMap[house.name] = house.eventPoints;
         });
-        setInitialPoints(prev => ({ ...prev, ...pointsMap }));
+        setInitialPoints(prev => ({ ...prev, ...initialMap }));
+        setEventPointsBackend(prev => ({ ...prev, ...eventMap }));
       } catch (error) {
         console.error("Failed to fetch house points", error);
       }
@@ -55,20 +64,20 @@ const PointsSystem: React.FC<PointsSystemProps> = ({ students, events }) => {
     }
   };
 
-  // Compute total points (Event Points + Initial Values)
+  // Compute total points (Event Points from backend + Initial Values)
   const chartData = useMemo(() => {
     return HOUSES.map(house => {
-      const ePoints = eventPoints.find(hp => hp.name === house.name)?.score || 0;
+      const ePoints = eventPointsBackend[house.name] || 0;
       const iPoints = initialPoints[house.name];
       return {
         name: house.name,
         EventPoints: ePoints,
         InitialPoints: iPoints,
         Total: ePoints + iPoints,
-        color: house.color.replace('bg-', '').replace('-500', '') 
+        color: house.color.replace('bg-', '').replace('-500', '')
       };
     });
-  }, [eventPoints, initialPoints]);
+  }, [eventPointsBackend, initialPoints]);
 
   const leadingHouse = useMemo(() => {
     return [...chartData].sort((a, b) => b.Total - a.Total)[0];

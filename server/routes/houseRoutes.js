@@ -8,40 +8,64 @@ router.use(protect);
 
 // @desc    Get all house data (creates them if they don't exist)
 // @route   GET /api/houses
+// Helper to calculate event points for each house
+import Event from '../models/eventModel.js';
 router.get('/', async (req, res) => {
   const houseNames = ['Yellow', 'Blue', 'Green', 'Red'];
-  
-  // Find existing houses for this user
-  let houses = await House.find({ user: req.user.id });
+  try {
+    // Ensure houses exist for user
+    const housePromises = houseNames.map(name =>
+      House.findOneAndUpdate(
+        { user: req.user.id, name: name },
+        { $setOnInsert: { initialPoints: 0, eventPoints: 0 } },
+        { new: true, upsert: true }
+      )
+    );
+    let houses = await Promise.all(housePromises);
 
-  // If any house is missing (first time run), create it
-  if (houses.length < 4) {
-    for (const name of houseNames) {
-      const exists = houses.find(h => h.name === name);
-      if (!exists) {
-        await House.create({
-          user: req.user.id,
-          name: name,
-          initialPoints: 0
-        });
+    // Calculate event points for each house
+    const events = await Event.find({ user: req.user.id });
+    const pointsMap = { Yellow: 0, Blue: 0, Green: 0, Red: 0 };
+    for (const event of events) {
+      for (const p of event.participants) {
+        if (p.studentId && p.score) {
+          // Find student's house
+          // Assume studentId is ObjectId, need to fetch student
+          // For performance, you may want to cache students
+          // But for now, fetch each
+          const student = await import('../models/studentModel.js').then(m => m.default.findById(p.studentId));
+          if (student && student.house) {
+            pointsMap[student.house] += p.score;
+          }
+        }
       }
     }
-    // Re-fetch to get the complete list
-    houses = await House.find({ user: req.user.id });
+    // Update eventPoints for each house
+    houses = await Promise.all(houses.map(async house => {
+      house.eventPoints = pointsMap[house.name] || 0;
+      await house.save();
+      return house;
+    }));
+    res.json(houses);
+  } catch (error) {
+    console.error("Error fetching/initializing houses:", error);
+    res.status(500).json({ message: "Failed to fetch house data" });
   }
-
-  res.json(houses);
 });
 
 // @desc    Update house initial points
 // @route   PUT /api/houses/:name
 router.put('/:name', async (req, res) => {
-  const { initialPoints } = req.body;
+  const { initialPoints, eventPoints } = req.body;
   const { name } = req.params;
+
+  const updateFields = {};
+  if (typeof initialPoints === 'number') updateFields.initialPoints = initialPoints;
+  if (typeof eventPoints === 'number') updateFields.eventPoints = eventPoints;
 
   const house = await House.findOneAndUpdate(
     { user: req.user.id, name: name },
-    { initialPoints },
+    updateFields,
     { new: true }
   );
 

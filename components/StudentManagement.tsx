@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas'; // <--- Add this
+import { jsPDF } from 'jspdf';
 import { type Student, HouseName, AgeCategory, type SportEvent, EventType } from '../types';
 import Card from './common/Card';
 import Modal from './common/Modal';
@@ -388,19 +390,13 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
     };
   }, [reportingStudent, events]);
   
-  const handleExport = async (action: 'pdf' | 'png' | 'share') => {
+const handleExport = async (action: 'pdf' | 'png' | 'share') => {
     if (!reportContentRef.current || !reportingStudent) return;
     
-    // Check if libraries are loaded
-    if (!(window as any).html2canvas || !(window as any).jspdf) {
-        alert("Export libraries are not loaded. Please check your internet connection.");
-        return;
-    }
-
     setIsExporting(true);
 
     try {
-        const canvas = await (window as any).html2canvas(reportContentRef.current, {
+        const canvas = await html2canvas(reportContentRef.current, {
             scale: 3,
             useCORS: true,
             backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
@@ -465,7 +461,6 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
             document.body.removeChild(link);
             setIsExporting(false);
         } else { // pdf
-            const { jsPDF } = (window as any).jspdf;
             const pdf = new jsPDF({
                 orientation: 'p',
                 unit: 'pt',
