@@ -52,7 +52,8 @@ export interface House {
     accentColor: string;
 }
 
-export type View = 'dashboard' | 'students' | 'events' | 'settings' | 'profile' | 'house-yellow' | 'house-blue' | 'house-green' | 'house-red';
+// Added 'points' to View type
+export type View = 'dashboard' | 'students' | 'events' | 'points' | 'settings' | 'profile' | 'house-yellow' | 'house-blue' | 'house-green' | 'house-red';
 
 export type Theme = 'light' | 'dark';
 

@@ -7,22 +7,22 @@ import EventManagement from './components/EventManagement';
 import HouseDashboard from './components/HouseDashboard';
 import Profile from './components/Profile';
 import AuthScreen from './components/AuthScreen';
-import { DashboardIcon, StudentsIcon, EventsIcon, HouseIcon, UserIcon, SettingsIcon, ProfileIcon, LogoutIcon, MenuIcon, CloseIcon } from './components/Icons'; // <-- ADDED MenuIcon, CloseIcon
+import PointsSystem from './components/PointsSystem';
+import { DashboardIcon, StudentsIcon, EventsIcon, HouseIcon, UserIcon, SettingsIcon, ProfileIcon, LogoutIcon, MenuIcon, CloseIcon, ChartIcon } from './components/Icons'; 
 import Card from './components/common/Card';
 import { useAuth } from './src/context/AuthContext';
 import api from './src/api';
 
-// --- HEADER COMPONENT (UPDATED) ---
+// --- HEADER COMPONENT ---
 interface HeaderProps {
     adminProfile: AdminProfile;
     onMenuToggle: () => void;
-    isMobileMenuOpen: boolean; // <-- ADDED
+    isMobileMenuOpen: boolean; 
 }
 
 const Header: React.FC<HeaderProps> = ({ adminProfile, onMenuToggle, isMobileMenuOpen }) => (
     <header className="bg-white dark:bg-gray-800 p-4 shadow-md flex justify-between items-center z-10 relative border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3">
-            {/* --- THIS IS THE NEW MENU BUTTON --- */}
             <button
                 onClick={onMenuToggle}
                 className="text-gray-800 dark:text-white md:hidden"
@@ -45,13 +45,13 @@ const Header: React.FC<HeaderProps> = ({ adminProfile, onMenuToggle, isMobileMen
     </header>
 );
 
-// --- SIDEBAR COMPONENT (UPDATED) ---
+// --- SIDEBAR COMPONENT ---
 interface SidebarProps {
     view: View;
     setView: (view: View) => void;
     onLogout: () => void;
-    isMobileMenuOpen: boolean; // <-- ADDED
-    setIsMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>; // <-- ADDED
+    isMobileMenuOpen: boolean; 
+    setIsMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>; 
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenuOpen, setIsMobileMenuOpen }) => {
@@ -70,7 +70,6 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenu
 
     const navItemClasses = (currentView: View) => `flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${view === currentView ? 'bg-blue-600 text-white' : 'hover:bg-gray-700 text-gray-300'}`;
 
-    // --- RESPONSIVE CLASSES ADDED HERE ---
     return (
         <aside 
             className={`fixed md:relative inset-y-0 left-0 z-30 w-64 bg-gray-800 p-4 space-y-2 flex flex-col text-white
@@ -80,6 +79,9 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenu
             <nav className="flex-grow space-y-2">
                 <div className={navItemClasses('dashboard')} onClick={() => handleSetView('dashboard')}>
                     <DashboardIcon /> <span>Dashboard</span>
+                </div>
+                <div className={navItemClasses('points')} onClick={() => handleSetView('points')}>
+                    <ChartIcon /> <span>Points System</span>
                 </div>
                 <div className={navItemClasses('students')} onClick={() => handleSetView('students')}>
                     <StudentsIcon /> <span>Students</span>
@@ -112,7 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenu
     );
 };
 
-// --- SETTINGS COMPONENT (Unchanged) ---
+// --- SETTINGS COMPONENT ---
 const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onResetData: () => void}> = ({theme, setTheme, onResetData}) => {
     
     const handleReset = () => {
@@ -162,7 +164,7 @@ const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onRese
     )
 }
 
-// --- MAIN APP COMPONENT (UPDATED) ---
+// --- MAIN APP COMPONENT ---
 function App() {
   const { user, isLoading, logout, updateProfile } = useAuth();
   
@@ -176,7 +178,6 @@ function App() {
     return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'dark';
   });
 
-  // --- NEW STATE FOR MOBILE MENU ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   useEffect(() => {
@@ -234,10 +235,11 @@ function App() {
         return <StudentManagement students={students} setStudents={setStudents} events={events} />;
       case 'events':
         return <EventManagement events={events} setEvents={setEvents} students={students} />;
+      case 'points':
+        return <PointsSystem students={students} events={events} />;
       case 'settings':
         return <Settings theme={theme} setTheme={setTheme} onResetData={handleResetData} />;
       case 'profile':
-        // --- THIS LINE IS NOW FIXED ---
         return <Profile adminProfile={adminProfile} setAdminProfile={setAdminProfile} updateProfile={updateProfile} />;
       case 'dashboard':
       default:
@@ -257,7 +259,6 @@ function App() {
     return <AuthScreen />;
   }
 
-  // --- UPDATED LOGGED-IN VIEW ---
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
       <Header 
@@ -266,7 +267,6 @@ function App() {
         isMobileMenuOpen={isMobileMenuOpen}
       />
       <div className="flex flex-1 overflow-hidden">
-        {/* --- NEW OVERLAY FOR MOBILE --- */}
         {isMobileMenuOpen && (
             <div 
                 className="fixed inset-0 bg-black/50 z-20 md:hidden" 
@@ -281,8 +281,6 @@ function App() {
             isMobileMenuOpen={isMobileMenuOpen}
             setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
-        {/* --- MAIN CONTENT NOW SHIFTS ON MOBILE WHEN MENU IS OPEN (optional) --- */}
-        {/* We use relative positioning and z-0 to ensure it stays behind the overlay */}
         <main className="flex-1 overflow-y-auto relative z-0">
           {renderView}
         </main>

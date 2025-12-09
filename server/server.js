@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import houseRoutes from './routes/houseRoutes.js'; // <--- Import this
 
 // Load env vars
 dotenv.config();
@@ -26,15 +27,15 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors()); // Allow cross-origin requests
-app.use(express.json()); // Body parser for JSON
+app.use(cors());
+app.use(express.json());
 
 // Mount Routers
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/houses', houseRoutes); // <--- Add this line
 
-// Simple test route
 app.get('/', (req, res) => {
   res.send('SDA Sports API is running...');
 });

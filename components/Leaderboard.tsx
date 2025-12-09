@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { type Student, type SportEvent, HouseName, AgeCategory } from '../types';
 import { usePoints } from '../src/hooks/usePoints';
 import { HOUSES } from '../constants';
 import Card from './common/Card';
 import { TrophyIcon, UserIcon } from './Icons';
+import api from '../src/api';
 
 interface LeaderboardProps {
     students: Student[];
@@ -11,7 +12,40 @@ interface LeaderboardProps {
 }
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ students, events }) => {
-    const { housePoints, studentPoints } = usePoints(students, events);
+    const { housePoints: eventHousePoints, studentPoints } = usePoints(students, events);
+    
+    // State for initial/bonus points from DB
+    const [initialPoints, setInitialPoints] = useState<Record<HouseName, number>>({
+        [HouseName.Yellow]: 0,
+        [HouseName.Blue]: 0,
+        [HouseName.Green]: 0,
+        [HouseName.Red]: 0,
+    });
+
+    // Fetch initial points on mount
+    useEffect(() => {
+        const fetchHousePoints = async () => {
+        try {
+            const { data } = await api.get('/houses');
+            const pointsMap: Record<string, number> = {};
+            data.forEach((house: any) => {
+            pointsMap[house.name] = house.initialPoints;
+            });
+            setInitialPoints(prev => ({ ...prev, ...pointsMap }));
+        } catch (error) {
+            console.error("Failed to fetch house points", error);
+        }
+        };
+        fetchHousePoints();
+    }, []);
+
+    // Combine event points with initial points
+    const finalHousePoints = useMemo(() => {
+        return eventHousePoints.map(hp => ({
+            ...hp,
+            score: hp.score + (initialPoints[hp.name] || 0)
+        })).sort((a, b) => b.score - a.score);
+    }, [eventHousePoints, initialPoints]);
 
     const [activeTab, setActiveTab] = useState<'house' | 'student'>('house');
     const [classFilter, setClassFilter] = useState('all');
@@ -57,7 +91,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ students, events }) => {
 
             {activeTab === 'house' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {housePoints.map((house, index) => {
+                    {finalHousePoints.map((house, index) => {
                         const houseDetails = HOUSES.find(h => h.name === house.name);
                         return (
                             <Card key={house.name} className={`relative overflow-hidden ${index === 0 ? 'ring-4 ring-yellow-400' : ''}`}>

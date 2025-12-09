@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { type Student, HouseName, AgeCategory, type SportEvent, EventType } from '../types';
 import Card from './common/Card';
 import Modal from './common/Modal';
-// --- SdaLogo import removed ---
 import { PlusIcon, UploadIcon, TrashIcon, ReportIcon, ShareIcon } from './Icons';
 import { HOUSES, STUDENT_CAPACITY } from '../constants';
 import Pagination from './common/Pagination';
@@ -14,11 +13,10 @@ interface StudentManagementProps {
   events: SportEvent[];
 }
 
-// StudentForm is UPDATED for validation
 const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> | Student) => void; onCancel: () => void }> = ({ student, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     fullName: student?.fullName || '',
-    class: student?.class || '', // Will be '' for new student, which shows "Select a class"
+    class: student?.class || '',
     uid: student?.uid || '', 
     phone: student?.phone || '',
     house: student?.house || HouseName.Yellow,
@@ -56,7 +54,6 @@ const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student,
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          {/* --- THIS IS THE NEW DROPDOWN --- */}
           <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Class</label>
           <select 
             name="class" 
@@ -121,7 +118,6 @@ const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student,
   );
 };
 
-// BulkRegisterModal is UPDATED for validation
 const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispatch<React.SetStateAction<Student[]>>, students: Student[]}> = ({ onClose, setStudents, students }) => {
     const [csvData, setCsvData] = useState('');
     
@@ -131,14 +127,12 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
         const houseNames = Object.values(HouseName);
         const categories = Object.values(AgeCategory);
         
-        // --- ADDED: Create a list of valid class strings ---
         const validClasses = new Set(Array.from({ length: 12 }, (_, i) => (i + 1).toString()));
 
         const newStudents = lines.map(line => {
             const [fullName, studentClass, uid, phone] = line.split(',').map(item => item.trim());
             
             if (fullName && studentClass && uid && phone) {
-                // --- ADDED: Validation for name, class, uid, and phone ---
                 if (!/^[A-Za-z ]+$/.test(fullName)) {
                     console.warn(`Skipping student ${fullName}: Name '${fullName}' must contain only letters and spaces.`);
                     return null;
@@ -155,7 +149,6 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
                      console.warn(`Skipping student ${fullName}: Class '${studentClass}' is not valid (must be 1-12).`);
                     return null;
                 }
-                // --- End of validation ---
 
                 const student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> = {
                     fullName,
@@ -226,7 +219,6 @@ const BulkRegisterModal: React.FC<{onClose: () => void, setStudents: React.Dispa
     )
 }
 
-// isDateWithinRange is unchanged
 const isDateWithinRange = (isoDateString: string, range: 'today' | 'week' | 'month'): boolean => {
     const date = new Date(isoDateString);
     const now = new Date();
@@ -264,10 +256,8 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  // --- NEW STATE TO HOLD THE LOGO DATA URI ---
   const [logoDataUri, setLogoDataUri] = useState<string>('');
 
-  // --- NEW useEffect TO FETCH AND CONVERT LOGO ---
   useEffect(() => {
     fetch('/sda-logo.png')
       .then(response => response.blob())
@@ -279,9 +269,7 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
         reader.readAsDataURL(blob);
       })
       .catch(error => console.error("Error fetching logo:", error));
-  }, []); // Runs once on component mount
-
-  // --- HANDLERS UPDATED TO USE API AND SHOW BETTER ERRORS ---
+  }, []);
 
   const handleAddStudent = async (studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (students.length >= STUDENT_CAPACITY) {
@@ -338,9 +326,6 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
     }
   };
 
-
-  // --- (Rest of component is the same as my previous answer) ---
-  
   const openEditModal = (student: Student) => {
     setEditingStudent(student);
     setIsModalOpen(true);
@@ -403,70 +388,116 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
     };
   }, [reportingStudent, events]);
   
-  // --- handleExport UPDATED ---
-  const handleExport = async (format: 'pdf' | 'png') => {
+  const handleExport = async (action: 'pdf' | 'png' | 'share') => {
     if (!reportContentRef.current || !reportingStudent) return;
-    setIsExporting(true);
-
-    const canvas = await (window as any).html2canvas(reportContentRef.current, {
-        scale: 3,
-        useCORS: true, // Keep this, works with the Data URI
-        backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
-        onclone: (clonedDoc) => {
-            const reportNode = clonedDoc.getElementById('student-report-content');
-            if (reportNode) {
-              reportNode.style.color = document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827';
-              // --- BUGFIX for dark mode background ---
-              reportNode.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff';
-            }
-            // --- NEW LOGIC to fix logo in clone ---
-            const logoInClone = clonedDoc.getElementById('report-logo-img') as HTMLImageElement | null;
-            if (logoInClone) {
-                logoInClone.src = logoDataUri; // Force the clone to use the data URI
-            }
-        }
-    });
-
-    const fileName = `progress-report-${reportingStudent.fullName.replace(/\s/g, '_')}`;
-
-    if (format === 'png') {
-        const image = canvas.toDataURL('image/png', 1.0);
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = `${fileName}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } else { // pdf
-        const { jsPDF } = (window as any).jspdf;
-        const pdf = new jsPDF({
-            orientation: 'p',
-            unit: 'pt',
-            format: 'a4'
-        });
-
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        
-        const canvasAspectRatio = canvas.width / canvas.height;
-
-        let finalWidth = pdfWidth - 40;
-        let finalHeight = finalWidth / canvasAspectRatio;
-
-        if (finalHeight > pdfHeight - 40) {
-            finalHeight = pdfHeight - 40;
-            finalWidth = finalHeight * canvasAspectRatio;
-        }
-        
-        const x = (pdfWidth - finalWidth) / 2;
-        const y = (pdfHeight - finalHeight) / 2;
-
-        const imgData = canvas.toDataURL('image/png', 1.0);
-        pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-        pdf.save(`${fileName}.pdf`);
+    
+    // Check if libraries are loaded
+    if (!(window as any).html2canvas || !(window as any).jspdf) {
+        alert("Export libraries are not loaded. Please check your internet connection.");
+        return;
     }
 
-    setIsExporting(false);
+    setIsExporting(true);
+
+    try {
+        const canvas = await (window as any).html2canvas(reportContentRef.current, {
+            scale: 3,
+            useCORS: true,
+            backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+            onclone: (clonedDoc: Document) => {
+                const reportNode = clonedDoc.getElementById('student-report-content');
+                if (reportNode) {
+                  reportNode.style.color = document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827';
+                  reportNode.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff';
+                }
+                const logoInClone = clonedDoc.getElementById('report-logo-img') as HTMLImageElement | null;
+                if (logoInClone) {
+                    logoInClone.src = logoDataUri; 
+                }
+            }
+        });
+
+        const fileName = `progress-report-${reportingStudent.fullName.replace(/\s/g, '_')}`;
+
+        if (action === 'share') {
+            canvas.toBlob(async (blob: Blob | null) => {
+                if (!blob) {
+                    alert('Failed to generate image for sharing.');
+                    setIsExporting(false);
+                    return;
+                }
+                
+                const file = new File([blob], `${fileName}.png`, { type: 'image/png' });
+                
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            title: 'Student Progress Report',
+                            text: `Check out the progress report for ${reportingStudent.fullName}`,
+                            files: [file]
+                        });
+                    } catch (err: any) {
+                        if (err.name !== 'AbortError') {
+                            console.error('Error sharing:', err);
+                            alert('Failed to share via native sharing. Try downloading instead.');
+                        }
+                    }
+                } else {
+                    const image = canvas.toDataURL('image/png', 1.0);
+                    const link = document.createElement('a');
+                    link.href = image;
+                    link.download = `${fileName}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    alert('Sharing is not supported on this device/browser. The report has been downloaded instead.');
+                }
+                setIsExporting(false);
+            }, 'image/png');
+
+        } else if (action === 'png') {
+            const image = canvas.toDataURL('image/png', 1.0);
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `${fileName}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setIsExporting(false);
+        } else { // pdf
+            const { jsPDF } = (window as any).jspdf;
+            const pdf = new jsPDF({
+                orientation: 'p',
+                unit: 'pt',
+                format: 'a4'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            
+            const canvasAspectRatio = canvas.width / canvas.height;
+
+            let finalWidth = pdfWidth - 40;
+            let finalHeight = finalWidth / canvasAspectRatio;
+
+            if (finalHeight > pdfHeight - 40) {
+                finalHeight = pdfHeight - 40;
+                finalWidth = finalHeight * canvasAspectRatio;
+            }
+            
+            const x = (pdfWidth - finalWidth) / 2;
+            const y = (pdfHeight - finalHeight) / 2;
+
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+            pdf.save(`${fileName}.pdf`);
+            setIsExporting(false);
+        }
+    } catch (e) {
+        console.error("Export/Share failed", e);
+        alert("An error occurred while exporting/sharing. Please check the console for more details.");
+        setIsExporting(false);
+    }
   };
 
   useEffect(() => {
@@ -751,19 +782,18 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
         )}
       </Modal>
       
-      {/* --- REPORT MODAL (UPDATED) --- */}
+      {/* --- REPORT MODAL --- */}
       <Modal isOpen={!!reportingStudent} onClose={() => setReportingStudent(null)} title="Progress Report" size="2xl">
         {reportingStudent && studentReportData && (
           <div>
             <div ref={reportContentRef} id="student-report-content" className="p-6 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                {/* --- LOGO CHANGED TO IMG TAG with Data URI --- */}
                 <div className="flex justify-center mb-4">
                   {logoDataUri ? (
                     <img 
-                      id="report-logo-img" // Added ID for the clone step
+                      id="report-logo-img"
                       src={logoDataUri} 
                       alt="SDA Logo" 
-                      className="h-16 w-auto" // 64px height, auto width
+                      className="h-16 w-auto"
                     />
                   ) : (
                     <div className="h-16 w-16 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
@@ -773,7 +803,6 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
                     <h2 className="text-3xl font-bold">Progress Report</h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">SDA Sports Management</p>
                 </div>
-                {/* --- END OF LOGO BLOCK --- */}
 
                 <div className="space-y-6">
                     <div>
@@ -840,11 +869,14 @@ const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStud
             </div>
             {/* --- EXPORT BUTTONS --- */}
             <div className="flex justify-end items-center space-x-2 pt-6 border-t border-gray-200 dark:border-gray-700 mt-6">
+                <button type="button" onClick={() => handleExport('share')} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400">
+                    <ShareIcon /><span>{isExporting ? 'Sharing...' : 'Share'}</span>
+                </button>
                 <button type="button" onClick={() => handleExport('png')} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400">
-                    <ShareIcon /><span>{isExporting ? 'Exporting...' : 'Save as Image'}</span>
+                    <UploadIcon /><span>{isExporting ? 'Exporting...' : 'Save as Image'}</span>
                 </button>
                 <button type="button" onClick={() => handleExport('pdf')} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-400">
-                    <ShareIcon /><span>{isExporting ? 'Exporting...' : 'Save as PDF'}</span>
+                    <UploadIcon /><span>{isExporting ? 'Exporting...' : 'Save as PDF'}</span>
                 </button>
                 <button type="button" onClick={() => setReportingStudent(null)} className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">Close</button>
             </div>

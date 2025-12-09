@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { type Student, type SportEvent, type HouseName } from '../types';
 import { HOUSES } from '../constants';
 import Card from './common/Card';
 import { TrophyIcon, UserIcon } from './Icons';
 import Pagination from './common/Pagination';
+import api from '../src/api';
 
 interface HouseDashboardProps {
   houseName: HouseName;
@@ -14,7 +15,23 @@ interface HouseDashboardProps {
 const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, events }) => {
   const houseDetails = HOUSES.find(h => h.name === houseName);
   const [currentPage, setCurrentPage] = useState(1);
+  const [initialPoints, setInitialPoints] = useState(0);
   const ITEMS_PER_PAGE = 15;
+
+  useEffect(() => {
+    const fetchHousePoints = async () => {
+      try {
+        const { data } = await api.get('/houses');
+        const house = data.find((h: any) => h.name === houseName);
+        if (house) {
+            setInitialPoints(house.initialPoints);
+        }
+      } catch (error) {
+        console.error("Failed to fetch house points", error);
+      }
+    };
+    fetchHousePoints();
+  }, [houseName]);
 
   if (!houseDetails) {
     return <div className="p-8 text-center text-red-500">House not found!</div>;
@@ -28,29 +45,26 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
     let points = 0;
     events.forEach(event => {
       event.participants.forEach(p => {
-        // FIX: Robustly extract student ID from participant data (p.studentId might be an object if populated)
         const pStudentId = (p.studentId as any)._id || p.studentId;
         const student = houseStudents.find(s => s.id === pStudentId);
-        // End Fix
         if (student) {
           points += p.score;
         }
       });
     });
-    return points;
-  }, [events, houseStudents]);
+    // Add initial points to the event calculation
+    return points + initialPoints;
+  }, [events, houseStudents, initialPoints]);
   
   const studentParticipatedEvents = useMemo(() => {
     const participatedEvents: Record<string, string[]> = {};
     
     houseStudents.forEach(student => {
-        // Initialize map keys using the student's local ID (which holds the Mongoose ID)
         participatedEvents[student.id] = [];
     });
 
     events.forEach(event => {
         event.participants.forEach(p => {
-            // FIX: Robustly extract student ID from participant data (object or string)
             const studentId = (p.studentId as any)._id || p.studentId; 
             
             if (participatedEvents[studentId]) {
@@ -113,14 +127,12 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
             </thead>
             <tbody>
               {paginatedHouseStudents.map(student => {
-                // Use the map key created by the memoized function
                 const participatedEvents = studentParticipatedEvents[student.id] || [];
                 return (
                   <tr key={student.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800">
                     <td className="p-3">{student.fullName}</td>
                     <td className="p-3">{student.class}</td>
                     <td className="p-3">{student.uid}</td>
-                    {/* This line now works correctly due to the fixes in Steps 1 and 3 */}
                     <td className="p-3">{participatedEvents.length > 0 ? participatedEvents.join(', ') : 'None'}</td>
                   </tr>
                 )

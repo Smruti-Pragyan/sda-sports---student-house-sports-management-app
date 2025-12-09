@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { type Student, type SportEvent, type Theme, HouseName } from '../types';
 import { HOUSES } from '../constants';
 import Card from './common/Card';
 import { TrophyIcon, UserIcon, EventsIcon } from './Icons';
+import api from '../src/api';
 
 interface DashboardProps {
   students: Student[];
@@ -11,9 +12,31 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
+  const [initialPoints, setInitialPoints] = useState<Record<HouseName, number>>({
+    [HouseName.Yellow]: 0,
+    [HouseName.Blue]: 0,
+    [HouseName.Green]: 0,
+    [HouseName.Red]: 0,
+  });
+
+  // Fetch initial points on mount
+  useEffect(() => {
+    const fetchHousePoints = async () => {
+      try {
+        const { data } = await api.get('/houses');
+        const pointsMap: Record<string, number> = {};
+        data.forEach((house: any) => {
+          pointsMap[house.name] = house.initialPoints;
+        });
+        setInitialPoints(prev => ({ ...prev, ...pointsMap }));
+      } catch (error) {
+        console.error("Failed to fetch house points", error);
+      }
+    };
+    fetchHousePoints();
+  }, []);
 
   const housePoints = useMemo(() => {
-    // FIX: Use _id if available, fallback to id. Key fix for MongoDB data.
     const studentHouseMap = new Map<string, HouseName>(
       students.map(s => [s._id || s.id, s.house])
     );
@@ -25,9 +48,9 @@ const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
       [HouseName.Red]: 0,
     };
 
+    // Calculate event points
     for (const event of events) {
       for (const p of event.participants) {
-        // FIX: Handle both string IDs and populated objects
         const pStudentId = typeof p.studentId === 'string' 
           ? p.studentId 
           : (p.studentId as any)._id || (p.studentId as any).id;
@@ -39,10 +62,14 @@ const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
       }
     }
 
+    // Add initial points and sort
     return Object.entries(points)
-      .map(([name, score]) => ({ name: name as HouseName, score }))
+      .map(([name, score]) => ({ 
+          name: name as HouseName, 
+          score: score + (initialPoints[name as HouseName] || 0) // Add initial points here
+      }))
       .sort((a, b) => b.score - a.score);
-  }, [students, events]);
+  }, [students, events, initialPoints]);
 
   const totalStudents = students.length;
   const totalEvents = events.length;
