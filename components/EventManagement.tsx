@@ -75,7 +75,6 @@ const ManageParticipantsModal: React.FC<{
     onClose: () => void,
     setEvents: React.Dispatch<React.SetStateAction<SportEvent[]>>
 }> = ({ event, students, events, onClose, setEvents }) => { 
-    // FIX: Robust ID extraction
     const [participants, setParticipants] = useState(event.participants.map(p => ({
         studentId: typeof p.studentId === 'string' ? p.studentId : (p.studentId._id || (p.studentId as any).id),
         score: p.score
@@ -129,28 +128,28 @@ const ManageParticipantsModal: React.FC<{
         setAddParticipantError(null); 
         if (!selectedStudentId || isFull) return;
 
-        if (event.type === EventType.Individual) {
-            const studentIdToCheck = selectedStudentId; 
+        // --- NEW FEATURE: CHECK 3 EVENT LIMIT ---
+        const currentEventId = event._id || event.id;
+        
+        // Count how many events the student is currently enrolled in (excluding the current one we are editing)
+        const enrolledCount = events.reduce((count, e) => {
+            // Skip the event currently being edited to avoid staleness/double counting
+            if ((e._id || e.id) === currentEventId) return count;
+
+            const isEnrolled = e.participants.some(p => {
+                const pId = typeof p.studentId === 'string' ? p.studentId : (p.studentId as any)._id || (p.studentId as any).id;
+                return pId === selectedStudentId;
+            });
             
-            const currentIndividualEventsCount = events.reduce((count, e) => {
-                if (e.type !== EventType.Individual) return count;
+            return isEnrolled ? count + 1 : count;
+        }, 0);
 
-                const isConfirmed = e.participants.some(p => {
-                    const pId = typeof p.studentId === 'string' ? p.studentId : (p.studentId._id || (p.studentId as any).id);
-                    return pId === studentIdToCheck;
-                });
-                
-                if (isConfirmed) {
-                    return count + 1;
-                }
-                return count;
-            }, 0);
-
-            if (currentIndividualEventsCount >= 3) {
-                setAddParticipantError(`Cannot add student: Already enrolled in the maximum limit of 3 individual events.`);
-                return;
-            }
+        // If they are already in 3 or more OTHER events, adding them here would exceed the limit
+        if (enrolledCount >= 3) {
+            setAddParticipantError(`Cannot add student: Already enrolled in the maximum limit of 3 events.`);
+            return;
         }
+        // ----------------------------------------
         
         const newParticipant = { studentId: selectedStudentId, score: 0 };
         setParticipants(prev => [...prev, newParticipant]);
@@ -285,7 +284,7 @@ const ManageParticipantsModal: React.FC<{
             )}
 
             {addParticipantError && ( 
-                <p className="text-sm text-red-500 text-center pt-2 flex items-center justify-center">
+                <p className="text-sm text-red-500 text-center pt-2 flex items-center justify-center font-semibold bg-red-100 dark:bg-red-900/30 p-2 rounded">
                     <ErrorIcon /> {addParticipantError}
                 </p>
             )}
@@ -494,7 +493,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {currentEvents.map(event => {
-            // --- LOGIC FOR THE ERROR MESSAGE ---
+            // --- LOGIC FOR THE SLOT STATUS MESSAGE ---
             const vacancies = event.maxParticipants - event.participants.length;
             const isNotFull = vacancies > 0;
             // --- END OF LOGIC ---
@@ -511,14 +510,12 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{event.type} Event</p>
                         <p className="text-sm text-gray-600 dark:text-gray-300">Participants: {event.participants.length} / {event.maxParticipants}</p>
                         
-                        {/* --- THIS IS THE NEW ERROR MESSAGE BLOCK --- */}
                         {isNotFull && (
                             <p className="text-red-500 dark:text-red-400 text-sm font-medium mt-2 flex items-center">
                                 <ErrorIcon />
                                 {vacancies} {vacancies === 1 ? 'slot' : 'slots'} not filled yet.
                             </p>
                         )}
-                        {/* --- END OF NEW BLOCK --- */}
 
                     </div>
                     <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-4 flex justify-end space-x-2">

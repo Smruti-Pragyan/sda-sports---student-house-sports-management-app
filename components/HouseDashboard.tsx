@@ -46,7 +46,7 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
     events.forEach(event => {
       event.participants.forEach(p => {
         const pStudentId = (p.studentId as any)._id || p.studentId;
-        const student = houseStudents.find(s => s.id === pStudentId);
+        const student = houseStudents.find(s => ((s as any)._id || s.id) === pStudentId);
         if (student) {
           points += p.score;
         }
@@ -60,13 +60,16 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
     const participatedEvents: Record<string, string[]> = {};
     
     houseStudents.forEach(student => {
-        participatedEvents[student.id] = [];
+        // FIX: Robust ID extraction here
+        const sId = (student as any)._id || student.id;
+        participatedEvents[sId] = [];
     });
 
     events.forEach(event => {
         event.participants.forEach(p => {
             const studentId = (p.studentId as any)._id || p.studentId; 
             
+            // Check if student exists in this house map before pushing
             if (participatedEvents[studentId]) {
                 participatedEvents[studentId].push(event.name);
             }
@@ -127,13 +130,27 @@ const HouseDashboard: React.FC<HouseDashboardProps> = ({ houseName, students, ev
             </thead>
             <tbody>
               {paginatedHouseStudents.map(student => {
-                const participatedEvents = studentParticipatedEvents[student.id] || [];
+                // FIX: Robust ID extraction here as well
+                const sId = (student as any)._id || student.id;
+                const participatedEvents = studentParticipatedEvents[sId] || [];
                 return (
-                  <tr key={student.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <tr key={sId} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800">
                     <td className="p-3">{student.fullName}</td>
                     <td className="p-3">{student.class}</td>
                     <td className="p-3">{student.uid}</td>
-                    <td className="p-3">{participatedEvents.length > 0 ? participatedEvents.join(', ') : 'None'}</td>
+                    <td className="p-3">
+                        {participatedEvents.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                                {participatedEvents.map((evt, idx) => (
+                                    <span key={idx} className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
+                                        {evt}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            <span className="text-gray-400">None</span>
+                        )}
+                    </td>
                   </tr>
                 )
               })}
