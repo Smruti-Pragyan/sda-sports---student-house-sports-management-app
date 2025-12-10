@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { type Student, type SportEvent, type Theme, HouseName } from '../types';
 import { HOUSES } from '../constants';
 import Card from './common/Card';
-import { TrophyIcon } from './Icons'; // Kept for fallbacks if needed
+import { TrophyIcon } from './Icons'; 
 import api from '../src/api';
 
 interface DashboardProps {
@@ -11,7 +11,7 @@ interface DashboardProps {
   theme: Theme;
 }
 
-// --- 1. Enhanced Winner Badge ---
+// --- 1. Enhanced Winner Badge (Trophy) ---
 const WinnerBadge = ({ colorClass }: { colorClass: string }) => {
   const bgColor = colorClass.includes('border') ? colorClass.replace('border-', 'bg-') : colorClass;
 
@@ -105,6 +105,25 @@ const OngoingBadge = () => {
       </div>
     );
   }
+
+// --- 6. New House Identity Badge (Simple House) ---
+const HouseIconBadge = ({ colorClass }: { colorClass: string }) => {
+    // Extract background color
+    const bgColor = colorClass.includes('border') ? colorClass.replace('border-', 'bg-') : colorClass;
+    
+    return (
+        <div className={`relative flex items-center justify-center w-14 h-14 rounded-full ${bgColor} shadow-lg border-2 border-white dark:border-gray-700 transform hover:scale-105 transition-transform duration-300`}>
+            {/* Subtle inner shine/glow */}
+            <div className="absolute inset-0 bg-white opacity-10 rounded-full"></div>
+            
+            {/* House Icon */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white drop-shadow-md">
+                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 22V12H15V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+        </div>
+    );
+}
 
 const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
   const [initialPoints, setInitialPoints] = useState<Record<HouseName, number>>({
@@ -241,9 +260,7 @@ const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
                     {isFirst ? (
                       <WinnerBadge colorClass={house.color} />
                     ) : (
-                      <div className={`w-12 h-12 rounded-full ${house.color} flex items-center justify-center text-white font-bold text-xl shadow-md border-2 border-white dark:border-gray-700`}>
-                        <span>{index + 1}</span>
-                      </div>
+                      <HouseIconBadge colorClass={house.color} />
                     )}
                   </div>
 
