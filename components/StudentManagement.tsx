@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import html2canvas from 'html2canvas'; // <--- Add this
+import html2canvas from 'html2canvas'; 
 import { jsPDF } from 'jspdf';
 import { type Student, HouseName, AgeCategory, type SportEvent, EventType } from '../types';
 import Card from './common/Card';
 import Modal from './common/Modal';
-import { PlusIcon, UploadIcon, TrashIcon, ReportIcon, ShareIcon } from './Icons';
+import { PlusIcon, UploadIcon, TrashIcon, ReportIcon, ShareIcon, HouseIcon } from './Icons'; 
 import { HOUSES, STUDENT_CAPACITY } from '../constants';
 import Pagination from './common/Pagination';
 import api from '../src/api';
@@ -14,6 +14,23 @@ interface StudentManagementProps {
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>; 
   events: SportEvent[];
 }
+
+// --- NEW: Enhanced House Badge Component ---
+const HouseBadge = ({ houseName }: { houseName: HouseName }) => {
+    const house = HOUSES.find(h => h.name === houseName);
+    const colorClass = house?.color || 'bg-gray-500';
+    
+    return (
+        <div className={`relative flex items-center justify-center w-12 h-12 rounded-full shadow-lg ${colorClass} border-[3px] border-white dark:border-gray-800`}>
+            {/* Inner shine for visual depth */}
+            <div className="absolute inset-0 bg-white opacity-20 rounded-full"></div>
+            
+            {/* House Icon */}
+            <HouseIcon className="w-7 h-7 text-white drop-shadow-md relative z-10" />
+        </div>
+    );
+};
+// ------------------------------------------
 
 const StudentForm: React.FC<{ student?: Student; onSave: (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> | Student) => void; onCancel: () => void }> = ({ student, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -805,12 +822,14 @@ const handleExport = async (action: 'pdf' | 'png' | 'share') => {
                         <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center space-x-4">
                             <span>Class: <strong>{reportingStudent.class}</strong></span>
                             <span>UID: <strong>{reportingStudent.uid}</strong></span> 
-                            <div className="flex items-center">
-                            <span>House: </span>
-                            <span className={`ml-2 px-2 py-0.5 text-xs font-semibold rounded-full text-white ${HOUSES.find(h => h.name === reportingStudent.house)?.color}`}>
-                                {reportingStudent.house}
-                            </span>
+                            
+                            {/* --- CHANGED: Replaced Text Pill with House Icon Badge --- */}
+                            <div className="flex items-center ml-2">
+                                <span className="mr-2">House:</span>
+                                <HouseBadge houseName={reportingStudent.house} />
                             </div>
+                            {/* ---------------------------------------------------- */}
+
                         </div>
                     </div>
 

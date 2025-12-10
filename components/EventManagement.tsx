@@ -128,28 +128,32 @@ const ManageParticipantsModal: React.FC<{
         setAddParticipantError(null); 
         if (!selectedStudentId || isFull) return;
 
-        // --- NEW FEATURE: CHECK 3 EVENT LIMIT ---
-        const currentEventId = event._id || event.id;
-        
-        // Count how many events the student is currently enrolled in (excluding the current one we are editing)
-        const enrolledCount = events.reduce((count, e) => {
-            // Skip the event currently being edited to avoid staleness/double counting
-            if ((e._id || e.id) === currentEventId) return count;
-
-            const isEnrolled = e.participants.some(p => {
-                const pId = typeof p.studentId === 'string' ? p.studentId : (p.studentId as any)._id || (p.studentId as any).id;
-                return pId === selectedStudentId;
-            });
+        // --- CHECK LIMIT FOR INDIVIDUAL EVENTS ---
+        if (event.type === EventType.Individual) {
+            const currentEventId = event._id || event.id;
             
-            return isEnrolled ? count + 1 : count;
-        }, 0);
+            // Count how many INDIVIDUAL events this student is currently enrolled in
+            const individualEnrolledCount = events.reduce((count, e) => {
+                // Ignore Team events for this count
+                if (e.type !== EventType.Individual) return count;
 
-        // If they are already in 3 or more OTHER events, adding them here would exceed the limit
-        if (enrolledCount >= 3) {
-            setAddParticipantError(`Cannot add student: Already enrolled in the maximum limit of 3 events.`);
-            return;
+                // Skip the current event (to avoid self-reference if already added)
+                if ((e._id || e.id) === currentEventId) return count;
+
+                const isEnrolled = e.participants.some(p => {
+                    const pId = typeof p.studentId === 'string' ? p.studentId : (p.studentId as any)._id || (p.studentId as any).id;
+                    return pId === selectedStudentId;
+                });
+                
+                return isEnrolled ? count + 1 : count;
+            }, 0);
+
+            if (individualEnrolledCount >= 3) {
+                setAddParticipantError(`Cannot add student: Already enrolled in 3 individual events.`);
+                return;
+            }
         }
-        // ----------------------------------------
+        // --- END CHECK ---
         
         const newParticipant = { studentId: selectedStudentId, score: 0 };
         setParticipants(prev => [...prev, newParticipant]);
