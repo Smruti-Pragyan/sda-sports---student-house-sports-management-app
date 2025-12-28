@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { type Student, type SportEvent, HouseName, AgeCategory } from '../types';
-import { usePoints } from '../src/hooks/usePoints';
+import { usePoints } from '../hooks/usePoints';
 import { HOUSES } from '../constants';
 import Card from './common/Card';
 import { TrophyIcon, UserIcon } from './Icons';
-import api from '../src/api';
+import api from '../api';
 
 interface LeaderboardProps {
     students: Student[];

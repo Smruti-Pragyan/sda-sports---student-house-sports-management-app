@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { AdminProfile } from '../types';
 import Card from './common/Card';
 import { UserIcon, LockIcon, IdIcon } from './Icons';
-import api from '../src/api';
+import api from '../api';
 
 interface ProfileProps {
     adminProfile: AdminProfile;

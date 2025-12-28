@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { useAuth } from '../src/context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import Card from './common/Card';
 
 const Login: React.FC = () => {

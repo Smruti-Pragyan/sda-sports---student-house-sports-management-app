@@ -3,7 +3,7 @@ import { type SportEvent, type Student, EventType, AgeCategory, HouseName } from
 import Card from './common/Card';
 import Modal from './common/Modal';
 import { PlusIcon, ErrorIcon } from './Icons';
-import api from '../src/api';
+import api from '../api';
 import { HOUSES } from '../constants'; 
 
 interface EventManagementProps {

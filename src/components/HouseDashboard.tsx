@@ -4,7 +4,7 @@ import { HOUSES } from '../constants';
 import Card from './common/Card';
 import { TrophyIcon, UserIcon } from './Icons';
 import Pagination from './common/Pagination';
-import api from '../src/api';
+import api from '../api';
 
 interface HouseDashboardProps {
   houseName: HouseName;

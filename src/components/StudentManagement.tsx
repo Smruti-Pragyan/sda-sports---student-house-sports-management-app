@@ -7,7 +7,7 @@ import Modal from './common/Modal';
 import { PlusIcon, UploadIcon, TrashIcon, ReportIcon, ShareIcon, HouseIcon } from './Icons'; 
 import { HOUSES, STUDENT_CAPACITY } from '../constants';
 import Pagination from './common/Pagination';
-import api from '../src/api';
+import api from '../api';
 
 interface StudentManagementProps {
   students: Student[];

@@ -3,7 +3,7 @@ import { type Student, type SportEvent, type Theme, HouseName } from '../types';
 import { HOUSES } from '../constants';
 import Card from './common/Card';
 import { TrophyIcon } from './Icons'; 
-import api from '../src/api';
+import api from '../api';
 
 interface DashboardProps {
   students: Student[];

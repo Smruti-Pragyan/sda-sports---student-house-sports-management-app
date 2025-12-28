@@ -10,8 +10,8 @@ import AuthScreen from './components/AuthScreen';
 import PointsSystem from './components/PointsSystem';
 import { DashboardIcon, StudentsIcon, EventsIcon, HouseIcon, UserIcon, SettingsIcon, ProfileIcon, LogoutIcon, MenuIcon, CloseIcon, ChartIcon } from './components/Icons'; 
 import Card from './components/common/Card';
-import { useAuth } from './src/context/AuthContext';
-import api from './src/api';
+import { useAuth } from './context/AuthContext';    // New relative path
+import api from './api';                            // New relative path
 
 // --- HEADER COMPONENT ---
 interface HeaderProps {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../src/context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import Card from './common/Card';
-import api from '../src/api';
+import api from '../api';
 // MODIFIED: Removed SdaLogo from this import
 import { EyeIcon, EyeOffIcon, SunIcon, MoonIcon, SpinnerIcon, BasketballIcon } from './Icons'; 
 import { type Theme } from '../types'; 

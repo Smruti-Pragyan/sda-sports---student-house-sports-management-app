@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { type Student, type SportEvent, HouseName } from '../types';
-import { usePoints } from '../src/hooks/usePoints';
+import { usePoints } from '../hooks/usePoints';
 import { HOUSES } from '../constants';
 import Card from './common/Card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { TrophyIcon, ChartIcon } from './Icons';
-import api from '../src/api';
+import api from '../api';
 
 interface PointsSystemProps {
   students: Student[];
