@@ -126,6 +126,8 @@ const HouseIconBadge = ({ colorClass }: { colorClass: string }) => {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
+  // Default students to empty array if undefined/null
+  const safeStudents = Array.isArray(students) ? students : [];
   const [initialPoints, setInitialPoints] = useState<Record<HouseName, number>>({
     [HouseName.Yellow]: 0,
     [HouseName.Blue]: 0,
@@ -138,9 +140,11 @@ const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
       try {
         const { data } = await api.get('/houses');
         const pointsMap: Record<string, number> = {};
-        data.forEach((house: any) => {
-          pointsMap[house.name] = house.initialPoints;
-        });
+        if (Array.isArray(data)) {
+          data.forEach((house: any) => {
+            pointsMap[house.name] = house.initialPoints;
+          });
+        }
         setInitialPoints(prev => ({ ...prev, ...pointsMap }));
       } catch (error) {
         console.error("Failed to fetch house points", error);
@@ -151,7 +155,7 @@ const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
 
   const housePoints = useMemo(() => {
     const studentHouseMap = new Map<string, HouseName>(
-      students.map(s => [s._id || s.id, s.house])
+      safeStudents.map(s => [s._id || s.id, s.house])
     );
 
     const points: Record<HouseName, number> = {
@@ -185,9 +189,9 @@ const Dashboard: React.FC<DashboardProps> = ({ students, events, theme }) => {
         };
       })
       .sort((a, b) => b.score - a.score);
-  }, [students, events, initialPoints]);
+  }, [safeStudents, events, initialPoints]);
 
-  const totalStudents = students.length;
+  const totalStudents = safeStudents.length;
   const totalEvents = events.length;
   const completedEvents = events.filter(e => e.status === 'Completed').length;
   const ongoingEvents = events.filter(e => e.status === 'Ongoing').length;

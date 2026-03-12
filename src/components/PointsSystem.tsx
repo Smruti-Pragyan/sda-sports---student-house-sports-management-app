@@ -13,7 +13,7 @@ interface PointsSystemProps {
 }
 
 const PointsSystem: React.FC<PointsSystemProps> = ({ students, events }) => {
-  const { housePoints: eventPoints } = usePoints(students, events);
+  const { housePoints: eventPoints } = usePoints(Array.isArray(students) ? students : [], events);
   
   // State for initial/bonus points and event points from backend
   const [initialPoints, setInitialPoints] = useState<Record<HouseName, number>>({

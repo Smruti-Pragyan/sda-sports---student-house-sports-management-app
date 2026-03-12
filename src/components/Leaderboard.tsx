@@ -12,7 +12,7 @@ interface LeaderboardProps {
 }
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ students, events }) => {
-    const { housePoints: eventHousePoints, studentPoints } = usePoints(students, events);
+    const { housePoints: eventHousePoints, studentPoints } = usePoints(Array.isArray(students) ? students : [], events);
     
     // State for initial/bonus points and event points from backend
     const [initialPoints, setInitialPoints] = useState<Record<HouseName, number>>({

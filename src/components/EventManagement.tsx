@@ -556,7 +556,7 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
         <Modal isOpen={isParticipantModalOpen} onClose={() => setIsParticipantModalOpen(false)} title={`Manage: ${managingParticipantsEvent.name}`}>
             <ManageParticipantsModal
                 event={managingParticipantsEvent}
-                students={students}
+                students={Array.isArray(students) ? students : []}
                 events={events} 
                 onClose={() => setIsParticipantModalOpen(false)}
                 setEvents={setEvents}

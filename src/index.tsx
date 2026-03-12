@@ -1,8 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { AuthProvider } from './src/context/AuthContext';
+// Fix: Remove './src/' and use './' since you are already in the src directory
+import { AuthProvider } from './context/AuthContext'; 
 import App from './App';
-import ErrorBoundary from './components/ErrorBoundary'; // <-- Import it
+import ErrorBoundary from './components/ErrorBoundary';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -12,7 +13,7 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ErrorBoundary> {/* <-- Wrap everything with ErrorBoundary */}
+    <ErrorBoundary>
       <AuthProvider>
         <App />
       </AuthProvider>

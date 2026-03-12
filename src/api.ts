@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const baseURL =
+  typeof import.meta !== 'undefined' &&
+  import.meta.env &&
+  import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL
+    : '/api';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api', 
+  baseURL,
 });
 
 // This is an interceptor to add the auth token to every request
