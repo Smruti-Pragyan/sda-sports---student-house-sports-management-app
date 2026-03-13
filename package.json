@@ -10,14 +10,23 @@
   },
   "dependencies": {
     "axios": "^1.13.1",
+    "compression": "^1.8.1",
+    "express-rate-limit": "^8.3.1",
+    "helmet": "^8.1.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.0",
+    "lucide-react": "^0.577.0",
+    "papaparse": "^5.5.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "recharts": "^3.3.0"
+    "recharts": "^3.3.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@types/papaparse": "^5.5.2",
     "@vitejs/plugin-react": "^5.0.0",
     "baseline-browser-mapping": "^2.10.7",
     "typescript": "~5.8.2",
