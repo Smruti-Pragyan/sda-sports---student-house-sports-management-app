@@ -93,14 +93,13 @@ const PointsSystem: React.FC<PointsSystemProps> = ({ students, events }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Input Section */}
+       {/* Left Column: Input Section */}
         <Card className="lg:col-span-1">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <span className="mr-2">⚡</span> Initial Values Configuration
+          <h2 className="text-xl font-semibold mb-6">
+            Team points
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Enter base points or handicap values for each house. These are added to the points earned from events.
-          </p>
+          
+          <div className="space-y-4"></div>
           
           <div className="space-y-4">
             {HOUSES.map(house => (

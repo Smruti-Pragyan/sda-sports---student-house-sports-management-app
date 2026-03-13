@@ -4,6 +4,10 @@ import User from '../models/userModel.js';
 import bcrypt from 'bcryptjs';
 import { protect } from '../middleware/authMiddleware.js';
 
+// ---> ADD THESE 3 LINES <---
+import Student from '../models/studentModel.js';
+import Event from '../models/eventModel.js';
+import House from '../models/houseModel.js';
 const router = express.Router();
 
 // Helper to generate JWT
@@ -120,5 +124,34 @@ router.post('/changepassword', protect, async (req, res) => {
     }
 });
 
+// @desc    Delete user account and ALL associated data
+// @route   DELETE /api/auth/profile
+// @access  Private
+router.delete('/profile', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 1. Delete all Students created by this admin
+        await Student.deleteMany({ user: user._id });
+
+        // 2. Delete all Events created by this admin
+        await Event.deleteMany({ user: user._id });
+
+        // 3. Delete all House configurations created by this admin
+        await House.deleteMany({ user: user._id });
+
+        // 4. Finally, delete the admin user account itself
+        await User.deleteOne({ _id: user._id });
+
+        res.json({ message: 'Account and all associated data permanently deleted from database.' });
+    } catch (error) {
+        console.error('Error during complete account deletion:', error);
+        res.status(500).json({ message: 'Server error during account deletion process.' });
+    }
+});
 
 export default router;

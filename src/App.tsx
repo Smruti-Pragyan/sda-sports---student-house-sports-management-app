@@ -11,7 +11,8 @@ import PointsSystem from './components/PointsSystem';
 import { DashboardIcon, StudentsIcon, EventsIcon, HouseIcon, UserIcon, SettingsIcon, ProfileIcon, LogoutIcon, MenuIcon, CloseIcon, ChartIcon } from './components/Icons'; 
 import Card from './components/common/Card';
 import { useAuth } from './context/AuthContext';    // New relative path
-import api from './api';                            // New relative path
+import api from './api';       
+import { Sun, Moon, LogOut, AlertOctagon } from 'lucide-react';                     // New relative path
 
 // --- HEADER COMPONENT ---
 interface HeaderProps {
@@ -115,54 +116,177 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenu
 };
 
 // --- SETTINGS COMPONENT ---
+// --- SETTINGS COMPONENT ---
+// --- SETTINGS COMPONENT ---
 const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onResetData: () => void}> = ({theme, setTheme, onResetData}) => {
-    
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
+    const [showConfirmModal, setShowConfirmModal] = useState(false); // New state for the modal
+
     const handleReset = () => {
         if (window.confirm('Are you sure you want to log out and clear local theme settings? All your data is saved on the server.')) {
             onResetData();
         }
     };
 
+    // This now just opens our beautiful in-app modal
+    const triggerDeleteAccount = () => {
+        setShowConfirmModal(true);
+    };
+
+    // This does the actual deletion when they click "Yes, delete my account" inside the modal
+    const confirmDeleteAccount = async () => {
+        setIsDeleting(true);
+        setErrorMsg('');
+
+        try {
+            await api.delete('/auth/profile');
+            // We can still use a simple alert here for the final success message before redirect, 
+            // or rely on the login screen to show a fresh state.
+            alert("Account successfully deleted."); 
+            onResetData(); 
+        } catch (error: any) {
+            console.error("Deletion failed:", error);
+            const serverMessage = error.response?.data?.message || error.message || 'Failed to delete account. Please try again.';
+            setErrorMsg(serverMessage);
+            setIsDeleting(false);
+            setShowConfirmModal(false); // Close modal so they can see the error message
+        }
+    };
+
     return (
-        <div className="p-8">
-            <h1 className="text-4xl font-bold mb-8">Settings</h1>
-            <Card className="max-w-md">
-                <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">Appearance</h2>
-                <div className="space-y-2">
-                    <p className="text-gray-600 dark:text-gray-400">Choose a theme for the application.</p>
-                    <div className="flex space-x-4 pt-2">
+        <div className="p-8 max-w-4xl relative">
+            <h1 className="text-4xl font-bold mb-8 text-gray-900 dark:text-white">Settings</h1>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    
+                    {/* 1. Appearance Section */}
+                    <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-750/50 transition-colors duration-200 group">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                                {theme === 'dark' ? <Moon size={24} /> : <Sun size={24} />}
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Customize the interface theme of your dashboard.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-900/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <button
+                                onClick={() => setTheme('light')}
+                                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                                    theme === 'light' 
+                                    ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' 
+                                    : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                                }`}
+                            >
+                                Light
+                            </button>
+                            <button
+                                onClick={() => setTheme('dark')}
+                                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                                    theme === 'dark' 
+                                    ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' 
+                                    : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                                }`}
+                            >
+                                Dark
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 2. Data Management Section */}
+                    <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-750/50 transition-colors duration-200 group">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
+                                <LogOut size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Data Management</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Log out safely and clear local browser settings.</p>
+                            </div>
+                        </div>
                         <button
-                            onClick={() => setTheme('light')}
-                            className={`px-6 py-2 rounded-md font-semibold ${theme === 'light' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                            onClick={handleReset}
+                            className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-xl transition-colors duration-200"
                         >
-                            Light
-                        </button>
-                        <button
-                            onClick={() => setTheme('dark')}
-                            className={`px-6 py-2 rounded-md font-semibold ${theme === 'dark' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-                        >
-                            Dark
+                            Log Out
                         </button>
                     </div>
+
+                    {/* 3. Danger Zone Section */}
+                    <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors duration-200 group">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 shadow-sm">
+                                <AlertOctagon size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-red-600 dark:text-red-500">Danger Zone</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Permanently delete your admin account. <span className="font-semibold text-gray-700 dark:text-gray-300">This action cannot be undone.</span>
+                                </p>
+                                {errorMsg && (
+                                    <p className="text-xs font-semibold text-red-500 mt-2 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded inline-block">
+                                        {errorMsg}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        <button
+                            onClick={triggerDeleteAccount}
+                            className="px-6 py-2.5 font-semibold rounded-xl border transition-all duration-200 bg-white dark:bg-transparent border-red-200 dark:border-red-800 text-red-600 dark:text-red-500 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white hover:border-red-600 shadow-sm"
+                        >
+                            Delete Account
+                        </button>
+                    </div>
+
                 </div>
-            </Card>
-            <Card className="max-w-md mt-8">
-                <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">Data Management</h2>
-                <div className="space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        This will log you out and clear local settings. All your data is saved securely on the server.
-                    </p>
-                    <button
-                        onClick={handleReset}
-                        className="w-full px-6 py-2 rounded-md font-semibold bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-gray-800"
-                    >
-                        Logout and Clear Settings
-                    </button>
+            </div>
+
+            {/* --- IN-APP CONFIRMATION MODAL --- */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm transition-opacity">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all animate-fadeIn">
+                        
+                        <div className="flex items-center justify-center w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full mb-6">
+                            <AlertOctagon size={32} className="text-red-600 dark:text-red-500" />
+                        </div>
+                        
+                        <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2">
+                            Delete your account?
+                        </h3>
+                        
+                        <p className="text-center text-gray-500 dark:text-gray-400 mb-8">
+                            Are you absolutely sure? This will permanently erase your account, along with all your registered <strong className="text-gray-700 dark:text-gray-300">Houses, Students, and Events</strong>. This action cannot be undone.
+                        </p>
+
+                        <div className="flex flex-col-reverse sm:flex-row gap-3">
+                            <button 
+                                onClick={() => setShowConfirmModal(false)}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold rounded-xl transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDeleteAccount}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-3 text-white bg-red-600 hover:bg-red-700 font-semibold rounded-xl shadow-sm transition-colors disabled:opacity-50 flex justify-center items-center"
+                            >
+                                {isDeleting ? (
+                                    <span className="animate-pulse">Deleting...</span>
+                                ) : (
+                                    "Yes, delete account"
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </Card>
+            )}
         </div>
-    )
-}
+    );
+};
 
 // --- MAIN APP COMPONENT ---
 function App() {
