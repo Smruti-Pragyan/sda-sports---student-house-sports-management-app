@@ -9,19 +9,19 @@ import Profile from './components/Profile';
 import AuthScreen from './components/AuthScreen';
 import PointsSystem from './components/PointsSystem';
 import { DashboardIcon, StudentsIcon, EventsIcon, HouseIcon, UserIcon, SettingsIcon, ProfileIcon, LogoutIcon, MenuIcon, CloseIcon, ChartIcon } from './components/Icons'; 
-import Card from './components/common/Card';
-import { useAuth } from './context/AuthContext';    // New relative path
+import { useAuth } from './context/AuthContext';    
 import api from './api';       
-import { Sun, Moon, LogOut, AlertOctagon } from 'lucide-react';                     // New relative path
+import { Sun, Moon, LogOut, AlertOctagon } from 'lucide-react';                     
 
 // --- HEADER COMPONENT ---
 interface HeaderProps {
     adminProfile: AdminProfile;
     onMenuToggle: () => void;
     isMobileMenuOpen: boolean; 
+    user: any;
 }
 
-const Header: React.FC<HeaderProps> = ({ adminProfile, onMenuToggle, isMobileMenuOpen }) => (
+const Header: React.FC<HeaderProps> = ({ adminProfile, onMenuToggle, isMobileMenuOpen, user }) => (
     <header className="bg-white dark:bg-gray-800 p-4 shadow-md flex justify-between items-center z-10 relative border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3">
             <button
@@ -34,9 +34,11 @@ const Header: React.FC<HeaderProps> = ({ adminProfile, onMenuToggle, isMobileMen
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">SDA Sports</h1>
         </div>
         <div className="flex items-center space-x-3">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 hidden sm:block">{adminProfile.name}</span>
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 hidden sm:block">
+                {user ? (adminProfile.name || 'Admin') : 'Guest Mode'}
+            </span>
              {adminProfile.profilePictureUrl ? (
-                <img src={adminProfile.profilePictureUrl} alt="Admin Profile" className="h-8 w-8 rounded-full object-cover" />
+                <img src={adminProfile.profilePictureUrl} alt="Admin Profile" className="h-8 w-8 rounded-full object-cover shadow-sm" />
             ) : (
                 <div className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                     <UserIcon />
@@ -53,31 +55,31 @@ interface SidebarProps {
     onLogout: () => void;
     isMobileMenuOpen: boolean; 
     setIsMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>; 
+    user: any;
+    onOpenAuth: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenuOpen, setIsMobileMenuOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenuOpen, setIsMobileMenuOpen, user, onOpenAuth }) => {
     
-    // Helper to set view AND close menu on mobile
     const handleSetView = (newView: View) => {
         setView(newView);
         setIsMobileMenuOpen(false);
     };
 
-    // Helper for logout
     const handleLogout = () => {
         onLogout();
         setIsMobileMenuOpen(false);
     }
 
-    const navItemClasses = (currentView: View) => `flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${view === currentView ? 'bg-blue-600 text-white' : 'hover:bg-gray-700 text-gray-300'}`;
+    const navItemClasses = (currentView: View) => `flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${view === currentView ? 'bg-blue-600 text-white font-semibold shadow-sm' : 'hover:bg-gray-700 text-gray-300 font-medium'}`;
 
     return (
         <aside 
             className={`fixed md:relative inset-y-0 left-0 z-30 w-64 bg-gray-800 p-4 space-y-2 flex flex-col text-white
                         transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 
-                        transition-transform duration-300 ease-in-out`}
+                        transition-transform duration-300 ease-in-out shadow-xl md:shadow-none`}
         >
-            <nav className="flex-grow space-y-2">
+            <nav className="flex-grow space-y-2 overflow-y-auto custom-scrollbar">
                 <div className={navItemClasses('dashboard')} onClick={() => handleSetView('dashboard')}>
                     <DashboardIcon /> <span>Dashboard</span>
                 </div>
@@ -91,58 +93,60 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onLogout, isMobileMenu
                     <EventsIcon /> <span>Events</span>
                 </div>
                 
-                <div className="pt-4">
-                    <h3 className="text-gray-400 text-sm font-semibold uppercase px-3 mb-2">Houses</h3>
-          {HOUSES.map(house => (
-            <div key={house.name} className={navItemClasses(`house-${house.name.toLowerCase()}` as View)} onClick={() => handleSetView(`house-${house.name.toLowerCase()}` as View)}>
-              <HouseIcon/> <span>{house.name} House</span>
-            </div>
-          ))}
+                <div className="pt-6 pb-2">
+                    <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider px-3 mb-3">Houses</h3>
+                  {HOUSES.map(house => (
+                    <div key={house.name} className={navItemClasses(`house-${house.name.toLowerCase()}` as View)} onClick={() => handleSetView(`house-${house.name.toLowerCase()}` as View)}>
+                      <HouseIcon/> <span>{house.name} House</span>
+                    </div>
+                  ))}
                 </div>
             </nav>
-            <div className="border-t border-gray-700 pt-2 space-y-1">
-                 <div className={navItemClasses('profile')} onClick={() => handleSetView('profile')}>
-                    <ProfileIcon /> <span>Profile</span>
-                </div>
-                 <div className={navItemClasses('settings')} onClick={() => handleSetView('settings')}>
-                    <SettingsIcon /> <span>Settings</span>
-                </div>
-                 <div className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-red-600 text-red-300" onClick={handleLogout}>
-                    <LogoutIcon/> <span>Logout</span>
-                </div>
+            <div className="border-t border-gray-700 pt-4 space-y-1 mt-auto">
+                {user ? (
+                    <>
+                        <div className={navItemClasses('profile')} onClick={() => handleSetView('profile')}>
+                            <ProfileIcon /> <span>Profile</span>
+                        </div>
+                        <div className={navItemClasses('settings')} onClick={() => handleSetView('settings')}>
+                            <SettingsIcon /> <span>Settings</span>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-red-600/90 text-red-400 hover:text-white font-medium mt-2" onClick={handleLogout}>
+                            <LogoutIcon/> <span>Logout</span>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-md hover:shadow-lg" onClick={onOpenAuth}>
+                        <UserIcon/> <span>Login / Sign Up</span>
+                    </div>
+                )}
             </div>
         </aside>
     );
 };
 
 // --- SETTINGS COMPONENT ---
-// --- SETTINGS COMPONENT ---
-// --- SETTINGS COMPONENT ---
 const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onResetData: () => void}> = ({theme, setTheme, onResetData}) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
-    const [showConfirmModal, setShowConfirmModal] = useState(false); // New state for the modal
+    const [showConfirmModal, setShowConfirmModal] = useState(false); 
 
     const handleReset = () => {
-        if (window.confirm('Are you sure you want to log out and clear local theme settings? All your data is saved on the server.')) {
+        if (window.confirm('Are you sure you want to log out and clear local theme settings?')) {
             onResetData();
         }
     };
 
-    // This now just opens our beautiful in-app modal
     const triggerDeleteAccount = () => {
         setShowConfirmModal(true);
     };
 
-    // This does the actual deletion when they click "Yes, delete my account" inside the modal
     const confirmDeleteAccount = async () => {
         setIsDeleting(true);
         setErrorMsg('');
 
         try {
             await api.delete('/auth/profile');
-            // We can still use a simple alert here for the final success message before redirect, 
-            // or rely on the login screen to show a fresh state.
             alert("Account successfully deleted."); 
             onResetData(); 
         } catch (error: any) {
@@ -150,21 +154,21 @@ const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onRese
             const serverMessage = error.response?.data?.message || error.message || 'Failed to delete account. Please try again.';
             setErrorMsg(serverMessage);
             setIsDeleting(false);
-            setShowConfirmModal(false); // Close modal so they can see the error message
+            setShowConfirmModal(false); 
         }
     };
 
     return (
-        <div className="p-8 max-w-4xl relative">
-            <h1 className="text-4xl font-bold mb-8 text-gray-900 dark:text-white">Settings</h1>
+        <div className="p-4 md:p-8 max-w-4xl relative">
+            <h1 className="text-3xl md:text-4xl font-bold mb-8 text-gray-900 dark:text-white">Settings</h1>
             
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                     
-                    {/* 1. Appearance Section */}
+                    {/* Appearance */}
                     <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-750/50 transition-colors duration-200 group">
                         <div className="flex items-start gap-4">
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl group-hover:scale-110 transition-transform duration-300">
                                 {theme === 'dark' ? <Moon size={24} /> : <Sun size={24} />}
                             </div>
                             <div>
@@ -196,10 +200,10 @@ const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onRese
                         </div>
                     </div>
 
-                    {/* 2. Data Management Section */}
+                    {/* Data Management */}
                     <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-750/50 transition-colors duration-200 group">
                         <div className="flex items-start gap-4">
-                            <div className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
+                            <div className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl group-hover:scale-110 transition-transform duration-300">
                                 <LogOut size={24} />
                             </div>
                             <div>
@@ -215,7 +219,7 @@ const Settings: React.FC<{theme: Theme, setTheme: (theme: Theme) => void, onRese
                         </button>
                     </div>
 
-                    {/* 3. Danger Zone Section */}
+                    {/* Danger Zone */}
                     <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors duration-200 group">
                         <div className="flex items-start gap-4">
                             <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 shadow-sm">
@@ -297,13 +301,20 @@ function App() {
   const [adminProfile, setAdminProfile] = useState<AdminProfile>({ name: '', email: '', profilePictureUrl: '' });
   
   const [view, setView] = useState<View>('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // States to control authentication entry logic
+  const [hasChosenExplore, setHasChosenExplore] = useState(false); 
+  const [showAuthManually, setShowAuthManually] = useState(false); 
+
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('sda-sports-theme');
     return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'dark';
   });
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+  // Decide whether to show AuthScreen immediately
+  const isAuthScreenVisible = !user && (!hasChosenExplore || showAuthManually);
+
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
@@ -340,11 +351,9 @@ function App() {
 
 
   const handleResetData = useCallback(() => {
-    if (window.confirm('Are you sure you want to log out and clear local theme settings?')) {
-        localStorage.removeItem('sda-sports-theme');
-        logout();
-        window.location.reload();
-    }
+    localStorage.removeItem('sda-sports-theme');
+    logout();
+    window.location.reload();
   }, [logout]);
 
   const renderView = useMemo(() => {
@@ -374,26 +383,36 @@ function App() {
   if (isLoading) {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-            Loading...
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
     );
   }
 
-  if (!user) {
-    return <AuthScreen />;
+  // Intercept normal rendering if we are supposed to show the Auth/Splash screens
+  if (isAuthScreenVisible) {
+    return (
+      <AuthScreen 
+        initialState={showAuthManually ? 'landing' : 'splash'}
+        onClose={() => {
+          setHasChosenExplore(true);
+          setShowAuthManually(false);
+        }} 
+      />
+    );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
       <Header 
         adminProfile={adminProfile} 
         onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         isMobileMenuOpen={isMobileMenuOpen}
+        user={user}
       />
       <div className="flex flex-1 overflow-hidden">
         {isMobileMenuOpen && (
             <div 
-                className="fixed inset-0 bg-black/50 z-20 md:hidden" 
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden transition-opacity" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 aria-hidden="true"
             ></div>
@@ -404,6 +423,11 @@ function App() {
             onLogout={logout} 
             isMobileMenuOpen={isMobileMenuOpen}
             setIsMobileMenuOpen={setIsMobileMenuOpen}
+            user={user}
+            onOpenAuth={() => {
+                setShowAuthManually(true);
+                setIsMobileMenuOpen(false);
+            }}
         />
         <main className="flex-1 overflow-y-auto relative z-0">
           {renderView}

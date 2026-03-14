@@ -5,6 +5,7 @@ import Modal from './common/Modal';
 import { PlusIcon, ErrorIcon } from './Icons';
 import api from '../api';
 import { HOUSES } from '../constants'; 
+import { useAuth } from '../context/AuthContext';
 
 interface EventManagementProps {
   events: SportEvent[];
@@ -75,6 +76,7 @@ const ManageParticipantsModal: React.FC<{
     onClose: () => void,
     setEvents: React.Dispatch<React.SetStateAction<SportEvent[]>>
 }> = ({ event, students, events, onClose, setEvents }) => { 
+    const { user } = useAuth(); // Hook to check for guest mode
     const [participants, setParticipants] = useState(event.participants.map(p => ({
         studentId: typeof p.studentId === 'string' ? p.studentId : (p.studentId._id || (p.studentId as any).id),
         score: p.score
@@ -128,23 +130,15 @@ const ManageParticipantsModal: React.FC<{
         setAddParticipantError(null); 
         if (!selectedStudentId || isFull) return;
 
-        // --- CHECK LIMIT FOR INDIVIDUAL EVENTS ---
         if (event.type === EventType.Individual) {
             const currentEventId = event._id || event.id;
-            
-            // Count how many INDIVIDUAL events this student is currently enrolled in
             const individualEnrolledCount = events.reduce((count, e) => {
-                // Ignore Team events for this count
                 if (e.type !== EventType.Individual) return count;
-
-                // Skip the current event (to avoid self-reference if already added)
                 if ((e._id || e.id) === currentEventId) return count;
-
                 const isEnrolled = e.participants.some(p => {
                     const pId = typeof p.studentId === 'string' ? p.studentId : (p.studentId as any)._id || (p.studentId as any).id;
                     return pId === selectedStudentId;
                 });
-                
                 return isEnrolled ? count + 1 : count;
             }, 0);
 
@@ -153,7 +147,6 @@ const ManageParticipantsModal: React.FC<{
                 return;
             }
         }
-        // --- END CHECK ---
         
         const newParticipant = { studentId: selectedStudentId, score: 0 };
         setParticipants(prev => [...prev, newParticipant]);
@@ -201,8 +194,12 @@ const ManageParticipantsModal: React.FC<{
 
         try {
             const eventId = event._id || event.id;
-            const { data: savedEvent } = await api.put(`/events/${eventId}`, updatedEventData);
-            setEvents(prev => prev.map(e => (e._id || e.id) === eventId ? savedEvent : e));
+            if (user) {
+                const { data: savedEvent } = await api.put(`/events/${eventId}`, updatedEventData);
+                setEvents(prev => prev.map(e => (e._id || e.id) === eventId ? savedEvent : e));
+            } else {
+                setEvents(prev => prev.map(e => (e._id || e.id) === eventId ? updatedEventData as SportEvent : e));
+            }
             onClose();
         } catch (error) {
             console.error("Failed to update event participants", error);
@@ -347,6 +344,7 @@ const isDateWithinRange = (isoDateString: string, range: 'today' | 'week' | 'mon
 
 
 const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, students }) => { 
+  const { user } = useAuth(); // Hook to check for guest mode
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isParticipantModalOpen, setIsParticipantModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<SportEvent | undefined>(undefined);
@@ -371,8 +369,12 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
   
   const handleAddEvent = async (eventData: Omit<SportEvent, 'id' | 'participants' | 'createdAt' | 'updatedAt'>) => {
     try {
-        const { data: newEvent } = await api.post('/events', {...eventData, participants: []});
-        setEvents(prev => [...prev, newEvent]);
+        if (user) {
+            const { data: newEvent } = await api.post('/events', {...eventData, participants: []});
+            setEvents(prev => [...prev, newEvent]);
+        } else {
+            setEvents(prev => [...prev, { ...eventData, participants: [], _id: Date.now().toString() } as SportEvent]);
+        }
         setIsModalOpen(false);
     } catch (error: any) {
         console.error("Failed to add event", error);
@@ -383,8 +385,12 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
   const handleEditEvent = async (eventData: SportEvent) => {
     try {
         const eventId = eventData._id || eventData.id;
-        const { data: updatedEvent } = await api.put(`/events/${eventId}`, eventData);
-        setEvents(prev => prev.map(e => (e._id || e.id) === eventId ? updatedEvent : e));
+        if (user) {
+            const { data: updatedEvent } = await api.put(`/events/${eventId}`, eventData);
+            setEvents(prev => prev.map(e => (e._id || e.id) === eventId ? updatedEvent : e));
+        } else {
+            setEvents(prev => prev.map(e => (e._id || e.id) === eventId ? eventData : e));
+        }
         setIsModalOpen(false);
         setEditingEvent(undefined);
     } catch (error: any) {
@@ -397,7 +403,9 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
     if (eventToDelete) {
         try {
             const eventId = eventToDelete._id || eventToDelete.id;
-            await api.delete(`/events/${eventId}`);
+            if (user) {
+                await api.delete(`/events/${eventId}`);
+            }
             setEvents(prev => prev.filter(e => (e._id || e.id) !== eventId));
             setEventToDelete(null);
         } catch (error: any) {
@@ -434,7 +442,10 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
 
   return (
     <div className="p-8">
-      <h1 className="text-4xl font-bold mb-8">Event Management</h1>
+      <div className="flex flex-col mb-8">
+        <h1 className="text-4xl font-bold">Event Management</h1>
+        {!user && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded mt-2 font-semibold border border-yellow-200 self-start">Guest Mode - Event changes will not save to the database</span>}
+      </div>
 
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -497,10 +508,8 @@ const EventManagement: React.FC<EventManagementProps> = ({ events, setEvents, st
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {currentEvents.map(event => {
-            // --- LOGIC FOR THE SLOT STATUS MESSAGE ---
             const vacancies = event.maxParticipants - event.participants.length;
             const isNotFull = vacancies > 0;
-            // --- END OF LOGIC ---
             
             return (
                 <Card key={event.id} className="flex flex-col">

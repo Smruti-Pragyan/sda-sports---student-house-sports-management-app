@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 import { 
   UserPlus, 
   Trash2, 
@@ -23,10 +24,16 @@ interface Student {
   category: string;
 }
 
+interface StudentManagementProps {
+  students: Student[];
+  setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
+  events?: any[]; 
+}
+
 type SortOption = 'name-asc' | 'name-desc' | 'class-asc' | 'class-desc' | 'house';
 
-const StudentManagement: React.FC = () => {
-  const [students, setStudents] = useState<Student[]>([]);
+const StudentManagement: React.FC<StudentManagementProps> = ({ students, setStudents }) => {
+  const { user } = useAuth(); // Hook to check if it's guest mode
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('name-asc');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -46,19 +53,6 @@ const StudentManagement: React.FC = () => {
     category: 'U13' 
   };
   const [formData, setFormData] = useState(initialFormState);
-
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
-  const fetchStudents = async () => {
-    try {
-      const response = await api.get('/students');
-      setStudents(response.data);
-    } catch (error) {
-      showStatus('error', 'Failed to fetch student database.');
-    }
-  };
 
   const showStatus = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
@@ -80,14 +74,22 @@ const StudentManagement: React.FC = () => {
     setIsSubmitting(true);
     try {
       if (editingId) {
-        await api.put(`/students/${editingId}`, formData);
+        if (user) {
+           await api.put(`/students/${editingId}`, formData);
+        }
+        setStudents(prev => prev.map(s => s._id === editingId ? { ...s, ...formData } : s));
         showStatus('success', 'Student updated successfully!');
       } else {
-        await api.post('/students', formData);
+        if (user) {
+           const res = await api.post('/students', formData);
+           setStudents(prev => [...prev, res.data]);
+        } else {
+           // GUEST MODE: Assign a temporary local ID
+           setStudents(prev => [...prev, { ...formData, _id: Date.now().toString() } as Student]);
+        }
         showStatus('success', 'Student enrolled successfully!');
       }
       closeModal();
-      fetchStudents();
     } catch (err: any) {
       setFormError(err.response?.data?.message || err.message || 'Operation failed.');
     } finally {
@@ -126,7 +128,9 @@ const StudentManagement: React.FC = () => {
   const deleteStudent = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this student?')) return;
     try {
-      await api.delete(`/students/${id}`);
+      if (user) {
+        await api.delete(`/students/${id}`);
+      }
       setStudents(prev => prev.filter(s => s._id !== id));
       showStatus('success', 'Student removed successfully.');
     } catch (error) {
@@ -164,6 +168,7 @@ const StudentManagement: React.FC = () => {
         <div>
           <h2 className="text-3xl font-bold text-gray-800 dark:text-white">Student Management</h2>
           <p className="text-gray-500 dark:text-gray-400">Manage house members and their details.</p>
+          {!user && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded mt-2 inline-block font-semibold border border-yellow-200">Guest Mode - Data will not be saved</span>}
         </div>
         
         <button 
